@@ -1,18 +1,41 @@
 import type {
+  DatabaseTableData,
   DatabaseTableSummary,
+  DeleteRowInput,
+  InsertRowInput,
   QueryResult,
+  UpdateRowInput,
 } from "@/types/database";
 
 type WorkerRequest =
   | { id: string; type: "initialize" }
   | { id: string; type: "execute"; sql: string }
   | { id: string; type: "listTables" }
+  | {
+      id: string;
+      type: "getTableData";
+      tableName: string;
+      limit: number;
+      offset: number;
+    }
+  | { id: string; type: "insertRow"; input: InsertRowInput }
+  | { id: string; type: "updateRow"; input: UpdateRowInput }
+  | { id: string; type: "deleteRow"; input: DeleteRowInput }
   | { id: string; type: "reset" };
 
 type WorkerRequestWithoutId =
   | { type: "initialize" }
   | { type: "execute"; sql: string }
   | { type: "listTables" }
+  | {
+      type: "getTableData";
+      tableName: string;
+      limit: number;
+      offset: number;
+    }
+  | { type: "insertRow"; input: InsertRowInput }
+  | { type: "updateRow"; input: UpdateRowInput }
+  | { type: "deleteRow"; input: DeleteRowInput }
   | { type: "reset" };
 
 type WorkerResponse =
@@ -22,6 +45,10 @@ type WorkerResponse =
 type PendingRequest = {
   resolve: (value: unknown) => void;
   reject: (reason: Error) => void;
+};
+
+type MutationResult = {
+  affectedRows: number;
 };
 
 class SqliteClient {
@@ -100,6 +127,42 @@ class SqliteClient {
 
   listTables(): Promise<DatabaseTableSummary[]> {
     return this.request({ type: "listTables" });
+  }
+
+  getTableData(
+    tableName: string,
+    options: {
+      limit?: number;
+      offset?: number;
+    } = {},
+  ): Promise<DatabaseTableData> {
+    return this.request({
+      type: "getTableData",
+      tableName,
+      limit: options.limit ?? 50,
+      offset: options.offset ?? 0,
+    });
+  }
+
+  insertRow(input: InsertRowInput): Promise<MutationResult> {
+    return this.request({
+      type: "insertRow",
+      input,
+    });
+  }
+
+  updateRow(input: UpdateRowInput): Promise<MutationResult> {
+    return this.request({
+      type: "updateRow",
+      input,
+    });
+  }
+
+  deleteRow(input: DeleteRowInput): Promise<MutationResult> {
+    return this.request({
+      type: "deleteRow",
+      input,
+    });
   }
 
   reset(): Promise<{ reset: true }> {
