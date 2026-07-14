@@ -1,0 +1,136 @@
+"use client";
+
+import { Cloud, FileSpreadsheet, Plus, X } from "lucide-react";
+
+import type { DatabaseTableSummary } from "@/types/database";
+
+type DatabaseManagerDialogProps = {
+  isOpen: boolean;
+  tables: DatabaseTableSummary[];
+  onClose: () => void;
+  onUseSql: (sql: string) => void;
+};
+
+const CREATE_TABLE_TEMPLATE = `CREATE TABLE NewTable (
+  Id INTEGER PRIMARY KEY AUTOINCREMENT,
+  Name TEXT NOT NULL
+);`;
+
+export function DatabaseManagerDialog({
+  isOpen,
+  tables,
+  onClose,
+  onUseSql,
+}: DatabaseManagerDialogProps) {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4"
+      role="presentation"
+      onMouseDown={onClose}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="database-manager-title"
+        className="max-h-[90vh] w-full max-w-4xl overflow-auto rounded-2xl bg-white shadow-2xl"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <header className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div>
+            <h2 id="database-manager-title" className="text-xl font-bold text-slate-900">
+              Database Manager
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Inspect tables and prepare SQL changes for your local database.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close database manager"
+            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+          >
+            <X size={20} aria-hidden="true" />
+          </button>
+        </header>
+
+        <div className="grid gap-6 p-6 lg:grid-cols-[1.3fr_0.7fr]">
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-900">Tables</h3>
+              <button
+                type="button"
+                onClick={() => onUseSql(CREATE_TABLE_TEMPLATE)}
+                className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              >
+                <Plus size={16} aria-hidden="true" />
+                Create Table
+              </button>
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-slate-200">
+              {tables.map((table) => (
+                <div
+                  key={table.name}
+                  className="flex items-center justify-between border-b border-slate-100 px-4 py-3 last:border-b-0"
+                >
+                  <div>
+                    <p className="font-medium text-slate-900">{table.name}</p>
+                    <p className="text-xs text-slate-500">{table.recordCount} records</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onUseSql(`SELECT * FROM ${table.name};`)}
+                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Open in Editor
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-4 text-sm leading-6 text-slate-600">
+              Use CREATE, INSERT, UPDATE, DELETE, ALTER TABLE, and DROP statements in the SQL editor to change the database.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center gap-2 font-semibold text-slate-900">
+                <FileSpreadsheet size={18} aria-hidden="true" />
+                Excel and CSV Import
+              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                File selection, column mapping, preview, and transactional import are planned for the next milestone.
+              </p>
+              <button
+                type="button"
+                disabled
+                className="mt-4 w-full cursor-not-allowed rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-400"
+              >
+                Import File — Coming Next
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center gap-2 font-semibold text-slate-900">
+                <Cloud size={18} aria-hidden="true" />
+                Cloud Connections
+              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                PostgreSQL, MySQL, and SQL Server connections will use a secure backend adapter instead of exposing credentials in the browser.
+              </p>
+              <span className="mt-4 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                Planned
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
