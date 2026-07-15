@@ -1,4 +1,5 @@
 import type {
+  DatabaseInitializationResult,
   DatabaseTableData,
   DatabaseTableSummary,
   DeleteRowInput,
@@ -124,7 +125,7 @@ class SqliteClient {
     });
   }
 
-  initialize(): Promise<{ ready: true }> {
+  initialize(): Promise<DatabaseInitializationResult> {
     return this.request({ type: "initialize" });
   }
 

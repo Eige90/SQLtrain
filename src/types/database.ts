@@ -58,3 +58,11 @@ export type DeleteRowInput = {
   tableName: string;
   identity: DatabaseRecord;
 };
+
+export type DatabaseStorageMode = "persistent" | "memory";
+
+export type DatabaseInitializationResult = {
+  ready: true;
+  storageMode: DatabaseStorageMode;
+  warning: string | null;
+};
