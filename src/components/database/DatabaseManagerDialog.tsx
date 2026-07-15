@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  Cloud,
   Eye,
   FileSpreadsheet,
   PencilLine,
@@ -10,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 
+import { FileImportDialog } from "@/components/database/FileImportDialog";
 import { TableDataPanel } from "@/components/database/TableDataPanel";
 import type { DatabaseTableSummary } from "@/types/database";
 
@@ -35,6 +35,9 @@ export function DatabaseManagerDialog({
 }: DatabaseManagerDialogProps) {
   const [selectedTableName, setSelectedTableName] =
     useState<string | null>(null);
+
+  const [isImportDialogOpen, setIsImportDialogOpen] =
+    useState(false);
 
   const activeTableName: string | null = tables.some(
     (table) => table.name === selectedTableName,
@@ -192,39 +195,35 @@ export function DatabaseManagerDialog({
               </div>
 
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                File selection, column mapping, preview, and
-                transactional import are planned for a later
-                milestone.
+                Import XLSX, XLS, or CSV files directly in your
+                browser. Files remain on your device and are not
+                uploaded to a server.
               </p>
 
               <button
                 type="button"
-                disabled
-                className="mt-4 w-full cursor-not-allowed rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-400"
+                onClick={() => setIsImportDialogOpen(true)}
+                className="mt-4 w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
               >
-                Import File — Coming Later
+                Import Excel or CSV
               </button>
             </div>
 
-            <div className="rounded-xl border border-slate-200 p-4">
-              <div className="flex items-center gap-2 font-semibold text-slate-900">
-                <Cloud size={18} aria-hidden="true" />
-                Cloud Connections
-              </div>
-
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                PostgreSQL, MySQL, and SQL Server connections
-                will use a secure backend adapter instead of
-                exposing credentials in the browser.
-              </p>
-
-              <span className="mt-4 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
-                Planned
-              </span>
-            </div>
           </aside>
         </div>
       </section>
+
+      {isImportDialogOpen && (
+        <FileImportDialog
+          tables={tables}
+          onClose={() => setIsImportDialogOpen(false)}
+          onImported={async (result) => {
+            await onDatabaseChanged();
+            setSelectedTableName(result.tableName);
+            setIsImportDialogOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

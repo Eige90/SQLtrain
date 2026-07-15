@@ -7,6 +7,11 @@ import type {
   UpdateRowInput,
 } from "@/types/database";
 
+import type {
+  ImportRequest,
+  ImportResult,
+} from "@/types/import";
+
 type WorkerRequest =
   | { id: string; type: "initialize" }
   | { id: string; type: "execute"; sql: string }
@@ -21,6 +26,7 @@ type WorkerRequest =
   | { id: string; type: "insertRow"; input: InsertRowInput }
   | { id: string; type: "updateRow"; input: UpdateRowInput }
   | { id: string; type: "deleteRow"; input: DeleteRowInput }
+  | { id: string; type: "importData"; input: ImportRequest }
   | { id: string; type: "reset" };
 
 type WorkerRequestWithoutId =
@@ -36,6 +42,7 @@ type WorkerRequestWithoutId =
   | { type: "insertRow"; input: InsertRowInput }
   | { type: "updateRow"; input: UpdateRowInput }
   | { type: "deleteRow"; input: DeleteRowInput }
+  | { type: "importData"; input: ImportRequest }
   | { type: "reset" };
 
 type WorkerResponse =
@@ -161,6 +168,13 @@ class SqliteClient {
   deleteRow(input: DeleteRowInput): Promise<MutationResult> {
     return this.request({
       type: "deleteRow",
+      input,
+    });
+  }
+
+  importData(input: ImportRequest): Promise<ImportResult> {
+    return this.request({
+      type: "importData",
       input,
     });
   }
