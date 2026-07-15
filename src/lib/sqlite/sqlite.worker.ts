@@ -138,9 +138,12 @@ function executeMutation(
 
 function getSeedSql(): Promise<string> {
   if (!seedSqlPromise) {
-    seedSqlPromise = fetch("/databases/northwind.sql", {
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
+    seedSqlPromise = fetch(`${basePath}/databases/northwind.sql`, {
       cache: "no-store",
-    }).then(async (response) => {
+    })
+    .then(async (response) => {
       if (!response.ok) {
         throw new Error(
           `Could not load the Northwind seed file (${response.status}).`,
