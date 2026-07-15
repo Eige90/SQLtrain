@@ -71,10 +71,18 @@ const MAX_IMPORT_ROWS = 100_000;
 const MAX_BOUND_PARAMETERS = 900;
 const IMPORT_SAVEPOINT = "sqltrain_file_import";
 
+const PERSISTENT_DATABASE_PATH = "/sqltrain.sqlite3";
+const OPFS_POOL_NAME = "sqltrain-opfs-sahpool";
+const OPFS_POOL_DIRECTORY = "/sqltrain-opfs-sahpool";
+const OPFS_POOL_CAPACITY = 8;
+
 const workerScope = self as DedicatedWorkerGlobalScope;
 
 let databasePromise: Promise<Database> | null = null;
 let seedSqlPromise: Promise<string> | null = null;
+
+let storageMode: "persistent" | "memory" = "memory";
+let storageWarning: string | null = null;
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown SQLite error.";
@@ -167,13 +175,66 @@ function getSeedSql(): Promise<string> {
   return seedSqlPromise;
 }
 
+function databaseHasUserTables(
+  database: Database,
+): boolean {
+  const rows = selectRows(
+    database,
+    `
+      SELECT 1
+      FROM sqlite_master
+      WHERE type = 'table'
+        AND name NOT LIKE 'sqlite_%'
+      LIMIT 1;
+    `,
+  );
+
+  return rows.length > 0;
+}
+
+async function seedDatabaseIfEmpty(
+  database: Database,
+): Promise<void> {
+  if (!databaseHasUserTables(database)) {
+    database.exec(await getSeedSql());
+  }
+}
+
 async function createDatabase(): Promise<Database> {
   const sqlite3 = await sqlite3InitModule();
-  const database = new sqlite3.oo1.DB(":memory:", "c");
 
-  database.exec(await getSeedSql());
+  try {
+    const poolUtil = await sqlite3.installOpfsSAHPoolVfs({
+      name: OPFS_POOL_NAME,
+      directory: OPFS_POOL_DIRECTORY,
+      initialCapacity: OPFS_POOL_CAPACITY,
+    });
 
-  return database;
+    const database = new poolUtil.OpfsSAHPoolDb(
+      PERSISTENT_DATABASE_PATH,
+    );
+
+    await seedDatabaseIfEmpty(database);
+    database.exec("PRAGMA foreign_keys = ON;");
+
+    storageMode = "persistent";
+    storageWarning = null;
+
+    return database;
+  } catch (persistentStorageError) {
+    const database = new sqlite3.oo1.DB(":memory:", "c");
+
+    database.exec(await getSeedSql());
+    database.exec("PRAGMA foreign_keys = ON;");
+
+    storageMode = "memory";
+    storageWarning =
+      "Persistent browser storage is unavailable. " +
+      "Changes will be lost after reloading this page. " +
+      getErrorMessage(persistentStorageError);
+
+    return database;
+  }
 }
 
 function getDatabase(): Promise<Database> {
@@ -862,7 +923,49 @@ async function importData(
 async function resetDatabase(): Promise<void> {
   const database = await getDatabase();
 
-  database.exec(await getSeedSql());
+  database.exec("PRAGMA foreign_keys = OFF;");
+
+  try {
+    const viewRows = selectRows(
+      database,
+      `
+        SELECT name
+        FROM sqlite_master
+        WHERE type = 'view'
+          AND name NOT LIKE 'sqlite_%';
+      `,
+    );
+
+    for (const [rawViewName] of viewRows) {
+      database.exec(
+        `DROP VIEW IF EXISTS ${quoteIdentifier(
+          String(rawViewName),
+        )};`,
+      );
+    }
+
+    const tableRows = selectRows(
+      database,
+      `
+        SELECT name
+        FROM sqlite_master
+        WHERE type = 'table'
+          AND name NOT LIKE 'sqlite_%';
+      `,
+    );
+
+    for (const [rawTableName] of tableRows) {
+      database.exec(
+        `DROP TABLE IF EXISTS ${quoteIdentifier(
+          String(rawTableName),
+        )};`,
+      );
+    }
+
+    database.exec(await getSeedSql());
+  } finally {
+    database.exec("PRAGMA foreign_keys = ON;");
+  }
 }
 
 function postSuccess(id: string, result: unknown): void {
@@ -894,7 +997,12 @@ workerScope.addEventListener(
       switch (request.type) {
         case "initialize":
           await getDatabase();
-          postSuccess(request.id, { ready: true });
+
+          postSuccess(request.id, {
+            ready: true,
+            storageMode,
+            warning: storageWarning,
+          });
           break;
 
         case "execute":

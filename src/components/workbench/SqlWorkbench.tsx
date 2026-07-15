@@ -9,6 +9,7 @@ import { SqlEditor } from "@/components/editor/SqlEditor";
 import { QueryResults } from "@/components/results/QueryResults";
 import { sqliteClient } from "@/lib/sqlite/sqlite-client";
 import type {
+  DatabaseInitializationResult,
   DatabaseTableSummary,
   QueryResult,
 } from "@/types/database";
@@ -18,6 +19,8 @@ const DEFAULT_SQL = "SELECT * FROM Customers;";
 export function SqlWorkbench() {
   const [sql, setSql] = useState(DEFAULT_SQL);
   const [tables, setTables] = useState<DatabaseTableSummary[]>([]);
+  const [storageInfo, setStorageInfo] =
+    useState<DatabaseInitializationResult | null>(null);
   const [result, setResult] = useState<QueryResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -33,10 +36,13 @@ export function SqlWorkbench() {
 
     async function initialize() {
       try {
-        await sqliteClient.initialize();
+        const initializationResult =
+          await sqliteClient.initialize();
+
         const nextTables = await sqliteClient.listTables();
 
         if (isActive) {
+          setStorageInfo(initializationResult);
           setTables(nextTables);
           setError(null);
         }
@@ -133,10 +139,20 @@ export function SqlWorkbench() {
             <p className="text-sm text-slate-400">Interactive SQL training environment</p>
           </div>
           <span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-300">
-            SQLite · Browser Session
+            {storageInfo?.storageMode === "persistent"
+              ? "SQLite · Saved in Browser"
+              : "SQLite · Temporary Session"}
           </span>
         </div>
       </header>
+
+      {storageInfo?.warning && (
+        <div className="mx-auto mt-4 max-w-[1600px] px-4 sm:px-6">
+          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {storageInfo.warning}
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto grid max-w-[1600px] gap-5 p-4 sm:p-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="space-y-5">
