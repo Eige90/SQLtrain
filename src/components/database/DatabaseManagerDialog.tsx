@@ -215,7 +215,13 @@ export function DatabaseManagerDialog({
 
       {isImportDialogOpen && (
         <FileImportDialog
+          tables={tables}
           onClose={() => setIsImportDialogOpen(false)}
+          onImported={async (result) => {
+            await onDatabaseChanged();
+            setSelectedTableName(result.tableName);
+            setIsImportDialogOpen(false);
+          }}
         />
       )}
     </div>

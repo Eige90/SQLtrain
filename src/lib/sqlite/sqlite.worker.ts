@@ -17,6 +17,12 @@ import type {
   UpdateRowInput,
 } from "../../types/database";
 
+import type {
+  ImportColumn,
+  ImportRequest,
+  ImportResult,
+} from "../../types/import";
+
 type WorkerRequest =
   | { id: string; type: "initialize" }
   | { id: string; type: "execute"; sql: string }
@@ -31,6 +37,7 @@ type WorkerRequest =
   | { id: string; type: "insertRow"; input: InsertRowInput }
   | { id: string; type: "updateRow"; input: UpdateRowInput }
   | { id: string; type: "deleteRow"; input: DeleteRowInput }
+  | { id: string; type: "importData"; input: ImportRequest }
   | { id: string; type: "reset" };
 
 type WorkerResponse =
@@ -60,6 +67,9 @@ const TABLE_ORDER = [
 const ROW_IDENTITY_KEY = "__sqltrain_rowid__";
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
+const MAX_IMPORT_ROWS = 100_000;
+const MAX_BOUND_PARAMETERS = 900;
+const IMPORT_SAVEPOINT = "sqltrain_file_import";
 
 const workerScope = self as DedicatedWorkerGlobalScope;
 
@@ -546,6 +556,309 @@ async function deleteRow(
   );
 }
 
+function validateImportTableName(tableName: string): string {
+  const normalizedName = tableName.trim();
+
+  if (!normalizedName) {
+    throw new Error("A target table name is required.");
+  }
+
+  if (normalizedName.toLowerCase().startsWith("sqlite_")) {
+    throw new Error(
+      'Table names starting with "sqlite_" are reserved.',
+    );
+  }
+
+  return normalizedName;
+}
+
+function tableExists(
+  database: Database,
+  tableName: string,
+): boolean {
+  const rows = selectRows(
+    database,
+    `
+      SELECT 1
+      FROM sqlite_master
+      WHERE type = 'table'
+        AND name = ?1
+      LIMIT 1;
+    `,
+    [tableName],
+  );
+
+  return rows.length > 0;
+}
+
+function getIncludedImportColumns(
+  columns: ImportColumn[],
+): Array<{
+  column: ImportColumn;
+  sourceIndex: number;
+}> {
+  const includedColumns = columns
+    .map((column, sourceIndex) => ({
+      column,
+      sourceIndex,
+    }))
+    .filter(({ column }) => column.include);
+
+  if (includedColumns.length === 0) {
+    throw new Error(
+      "Select at least one column for the import.",
+    );
+  }
+
+  const usedNames = new Set<string>();
+
+  for (const { column } of includedColumns) {
+    const targetName = column.targetName.trim();
+
+    if (!targetName) {
+      throw new Error(
+        "Every included column requires a target name.",
+      );
+    }
+
+    const normalizedName = targetName.toLowerCase();
+
+    if (usedNames.has(normalizedName)) {
+      throw new Error(
+        `Duplicate target column "${targetName}".`,
+      );
+    }
+
+    usedNames.add(normalizedName);
+  }
+
+  return includedColumns;
+}
+
+function getSqliteColumnType(
+  column: ImportColumn,
+): string {
+  switch (column.detectedType) {
+    case "INTEGER":
+    case "REAL":
+    case "TEXT":
+      return column.detectedType;
+
+    case "BOOLEAN":
+      return "INTEGER";
+
+    case "DATE":
+      return "TEXT";
+  }
+}
+
+function createImportTable(
+  database: Database,
+  tableName: string,
+  columns: Array<{
+    column: ImportColumn;
+    sourceIndex: number;
+  }>,
+): void {
+  const columnDefinitions = columns
+    .map(
+      ({ column }) =>
+        `${quoteIdentifier(column.targetName.trim())} ${getSqliteColumnType(
+          column,
+        )}`,
+    )
+    .join(", ");
+
+  database.exec(`
+    CREATE TABLE ${quoteIdentifier(tableName)} (
+      ${columnDefinitions}
+    );
+  `);
+}
+
+function insertImportRows(
+  database: Database,
+  tableName: string,
+  targetColumnNames: string[],
+  sourceColumnIndexes: number[],
+  rows: DatabaseValue[][],
+): number {
+  if (rows.length === 0) {
+    return 0;
+  }
+
+  const rowSize = targetColumnNames.length;
+  const rowsPerBatch = Math.max(
+    1,
+    Math.floor(MAX_BOUND_PARAMETERS / rowSize),
+  );
+
+  const columnSql = targetColumnNames
+    .map(quoteIdentifier)
+    .join(", ");
+
+  let importedRows = 0;
+
+  for (
+    let batchStart = 0;
+    batchStart < rows.length;
+    batchStart += rowsPerBatch
+  ) {
+    const batchRows = rows.slice(
+      batchStart,
+      batchStart + rowsPerBatch,
+    );
+
+    const placeholders = batchRows
+      .map(
+        () =>
+          `(${targetColumnNames.map(() => "?").join(", ")})`,
+      )
+      .join(", ");
+
+    const bindValues: SqlValue[] = [];
+
+    for (const row of batchRows) {
+      for (const sourceIndex of sourceColumnIndexes) {
+        bindValues.push(
+          normalizeSqlValue(row[sourceIndex] ?? null),
+        );
+      }
+    }
+
+    database.exec({
+      sql: `
+        INSERT INTO ${quoteIdentifier(tableName)}
+          (${columnSql})
+        VALUES
+          ${placeholders};
+      `,
+      bind: bindValues,
+    });
+
+    importedRows += batchRows.length;
+  }
+
+  return importedRows;
+}
+
+async function importData(
+  input: ImportRequest,
+): Promise<ImportResult> {
+  const database = await getDatabase();
+  const tableName = validateImportTableName(input.tableName);
+
+  if (input.rows.length === 0) {
+    throw new Error("The import does not contain any data rows.");
+  }
+
+  if (input.rows.length > MAX_IMPORT_ROWS) {
+    throw new Error(
+      `A single import may contain at most ${MAX_IMPORT_ROWS.toLocaleString(
+        "en-US",
+      )} rows.`,
+    );
+  }
+
+  const includedColumns = getIncludedImportColumns(
+    input.columns,
+  );
+
+  database.exec(`SAVEPOINT ${IMPORT_SAVEPOINT};`);
+
+  try {
+    let targetColumnNames: string[];
+
+    if (input.mode === "append") {
+      const existingColumns = await getTableColumns(
+        database,
+        tableName,
+      );
+
+      const existingColumnsByName = new Map(
+        existingColumns.map((column) => [
+          column.name.toLowerCase(),
+          column.name,
+        ]),
+      );
+
+      targetColumnNames = includedColumns.map(
+        ({ column }) => {
+          const requestedName = column.targetName.trim();
+
+          const existingName = existingColumnsByName.get(
+            requestedName.toLowerCase(),
+          );
+
+          if (!existingName) {
+            throw new Error(
+              `Column "${requestedName}" does not exist in table "${tableName}".`,
+            );
+          }
+
+          return existingName;
+        },
+      );
+    } else {
+      const alreadyExists = tableExists(database, tableName);
+
+      if (input.mode === "create" && alreadyExists) {
+        throw new Error(
+          `Table "${tableName}" already exists.`,
+        );
+      }
+
+      if (input.mode === "replace" && alreadyExists) {
+        database.exec(
+          `DROP TABLE ${quoteIdentifier(tableName)};`,
+        );
+      }
+
+      createImportTable(
+        database,
+        tableName,
+        includedColumns,
+      );
+
+      targetColumnNames = includedColumns.map(
+        ({ column }) => column.targetName.trim(),
+      );
+    }
+
+    const importedRows = insertImportRows(
+      database,
+      tableName,
+      targetColumnNames,
+      includedColumns.map(
+        ({ sourceIndex }) => sourceIndex,
+      ),
+      input.rows,
+    );
+
+    database.exec(`RELEASE SAVEPOINT ${IMPORT_SAVEPOINT};`);
+
+    return {
+      tableName,
+      importedRows,
+      mode: input.mode,
+    };
+  } catch (error) {
+    try {
+      database.exec(
+        `ROLLBACK TO SAVEPOINT ${IMPORT_SAVEPOINT};`,
+      );
+
+      database.exec(
+        `RELEASE SAVEPOINT ${IMPORT_SAVEPOINT};`,
+      );
+    } catch {
+      // Preserve the original import error.
+    }
+
+    throw error;
+  }
+}
+
 async function resetDatabase(): Promise<void> {
   const database = await getDatabase();
 
@@ -621,6 +934,13 @@ workerScope.addEventListener(
           postSuccess(
             request.id,
             await deleteRow(request.input),
+          );
+          break;
+
+        case "importData":
+          postSuccess(
+            request.id,
+            await importData(request.input),
           );
           break;
 

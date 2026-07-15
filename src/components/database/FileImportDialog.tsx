@@ -12,35 +12,52 @@ import {
 } from "lucide-react";
 
 import { createImportPreview } from "@/lib/import/create-import-preview";
+import { normalizeColumnName } from "@/lib/import/normalize-column-name";
 import { parseImportFile } from "@/lib/import/parse-import-file";
+import { sqliteClient } from "@/lib/sqlite/sqlite-client";
 
-import type { DatabaseValue } from "@/types/database";
-import type { ParsedImportFile } from "@/types/import";
+import type { DatabaseTableSummary } from "@/types/database";
+import type {
+  ImportMode,
+  ImportResult,
+  ParsedImportFile,
+} from "@/types/import";
 
 type FileImportDialogProps = {
+  tables: DatabaseTableSummary[];
   onClose: () => void;
+  onImported: (
+    result: ImportResult,
+  ) => Promise<void> | void;
 };
 
 const PREVIEW_ROW_LIMIT = 20;
+const MAX_IMPORT_ROWS = 100_000;
 
-function formatPreviewValue(value: DatabaseValue): string {
+function getDefaultTableName(fileName: string): string {
+  const nameWithoutExtension = fileName.replace(
+    /\.[^.]+$/,
+    "",
+  );
+
+  return normalizeColumnName(
+    nameWithoutExtension || "ImportedData",
+    0,
+  );
+}
+
+function formatPreviewValue(value: unknown): string {
   if (value === null) {
     return "NULL";
-  }
-
-  if (
-    value instanceof Uint8Array ||
-    value instanceof Int8Array ||
-    value instanceof ArrayBuffer
-  ) {
-    return "[Binary data]";
   }
 
   return String(value);
 }
 
 export function FileImportDialog({
+  tables,
   onClose,
+  onImported,
 }: FileImportDialogProps) {
   const [parsedFile, setParsedFile] =
     useState<ParsedImportFile | null>(null);
@@ -51,7 +68,13 @@ export function FileImportDialog({
   const [useFirstRowAsHeader, setUseFirstRowAsHeader] =
     useState(true);
 
+  const [mode, setMode] = useState<ImportMode>("create");
+  const [newTableName, setNewTableName] = useState("");
+  const [existingTableName, setExistingTableName] =
+    useState(tables[0]?.name ?? "");
+
   const [isParsing, setIsParsing] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const selectedSheet =
@@ -71,6 +94,17 @@ export function FileImportDialog({
         : null,
     [selectedSheet, useFirstRowAsHeader],
   );
+
+  const activeExistingTableName = tables.some(
+    (table) => table.name === existingTableName,
+  )
+    ? existingTableName
+    : (tables[0]?.name ?? "");
+
+  const targetTableName =
+    mode === "create"
+      ? newTableName.trim()
+      : activeExistingTableName;
 
   async function selectFile(
     event: ChangeEvent<HTMLInputElement>,
@@ -94,6 +128,10 @@ export function FileImportDialog({
         nextParsedFile.sheets[0]?.name ?? "",
       );
       setUseFirstRowAsHeader(true);
+      setMode("create");
+      setNewTableName(
+        getDefaultTableName(nextParsedFile.fileName),
+      );
     } catch (parseError) {
       setParsedFile(null);
       setSelectedSheetName("");
@@ -106,6 +144,77 @@ export function FileImportDialog({
       setIsParsing(false);
     }
   }
+
+  async function importFile() {
+    if (!preview) {
+      return;
+    }
+
+    setError(null);
+
+    if (!targetTableName) {
+      setError("Select or enter a target table.");
+      return;
+    }
+
+    if (preview.columns.length === 0) {
+      setError("No importable columns were detected.");
+      return;
+    }
+
+    if (preview.totalRows === 0) {
+      setError("No importable data rows were detected.");
+      return;
+    }
+
+    if (preview.totalRows > MAX_IMPORT_ROWS) {
+      setError(
+        `The file contains more than ${MAX_IMPORT_ROWS.toLocaleString(
+          "en-US",
+        )} rows.`,
+      );
+      return;
+    }
+
+    if (
+      mode === "replace" &&
+      !window.confirm(
+        `Replace table "${targetTableName}"? Its current structure and all rows will be deleted.`,
+      )
+    ) {
+      return;
+    }
+
+    setIsImporting(true);
+
+    try {
+      const result = await sqliteClient.importData({
+        tableName: targetTableName,
+        mode,
+        columns: preview.columns,
+        rows: preview.rows,
+      });
+
+      await onImported(result);
+    } catch (importError) {
+      setError(
+        importError instanceof Error
+          ? importError.message
+          : "The file could not be imported.",
+      );
+    } finally {
+      setIsImporting(false);
+    }
+  }
+
+  const canImport =
+    preview !== null &&
+    preview.columns.length > 0 &&
+    preview.totalRows > 0 &&
+    preview.totalRows <= MAX_IMPORT_ROWS &&
+    Boolean(targetTableName) &&
+    !isParsing &&
+    !isImporting;
 
   return (
     <div
@@ -130,17 +239,17 @@ export function FileImportDialog({
             </h3>
 
             <p className="mt-1 text-sm text-slate-500">
-              Select a file, choose a worksheet, and review
-              the detected data.
+              Files are processed locally and never leave your
+              browser.
             </p>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            disabled={isParsing}
+            disabled={isParsing || isImporting}
             aria-label="Close file import"
-            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed"
+            className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed"
           >
             <X size={20} aria-hidden="true" />
           </button>
@@ -153,49 +262,46 @@ export function FileImportDialog({
             </div>
           )}
 
-          <section className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6">
-            <div className="flex flex-col items-center text-center">
-              <FileSpreadsheet
-                size={36}
-                className="text-emerald-600"
-                aria-hidden="true"
+          <section className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+            <FileSpreadsheet
+              size={36}
+              className="mx-auto text-emerald-600"
+              aria-hidden="true"
+            />
+
+            <h4 className="mt-3 font-semibold text-slate-900">
+              Select an Excel or CSV file
+            </h4>
+
+            <p className="mt-1 text-sm text-slate-500">
+              XLSX, XLS, or CSV · Maximum file size 25 MB
+            </p>
+
+            <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+              <Upload size={16} aria-hidden="true" />
+
+              {isParsing ? "Reading File..." : "Choose File"}
+
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                disabled={isParsing || isImporting}
+                onChange={(event) => void selectFile(event)}
+                className="sr-only"
               />
+            </label>
 
-              <h4 className="mt-3 font-semibold text-slate-900">
-                Select an Excel or CSV file
-              </h4>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Supported formats: XLSX, XLS, and CSV. Maximum
-                file size: 25 MB.
+            {parsedFile && (
+              <p className="mt-3 text-sm font-medium text-slate-700">
+                {parsedFile.fileName}
               </p>
-
-              <label className="mt-4 flex cursor-pointer items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">
-                <Upload size={16} aria-hidden="true" />
-
-                {isParsing ? "Reading File..." : "Choose File"}
-
-                <input
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  disabled={isParsing}
-                  onChange={(event) => void selectFile(event)}
-                  className="sr-only"
-                />
-              </label>
-
-              {parsedFile && (
-                <p className="mt-3 text-sm font-medium text-slate-700">
-                  {parsedFile.fileName}
-                </p>
-              )}
-            </div>
+            )}
           </section>
 
           {parsedFile && selectedSheet && preview && (
             <>
               <section className="grid gap-4 rounded-xl border border-slate-200 p-4 md:grid-cols-2">
-                <label className="block">
+                <label>
                   <span className="text-sm font-semibold text-slate-700">
                     Worksheet
                   </span>
@@ -205,7 +311,7 @@ export function FileImportDialog({
                     onChange={(event) =>
                       setSelectedSheetName(event.target.value)
                     }
-                    className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                    className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2"
                   >
                     {parsedFile.sheets.map((sheet) => (
                       <option
@@ -220,7 +326,7 @@ export function FileImportDialog({
 
                 <div>
                   <span className="text-sm font-semibold text-slate-700">
-                    Header Settings
+                    Header
                   </span>
 
                   <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
@@ -233,10 +339,80 @@ export function FileImportDialog({
                         )
                       }
                     />
-
                     Use first row as column names
                   </label>
                 </div>
+
+                <label>
+                  <span className="text-sm font-semibold text-slate-700">
+                    Import mode
+                  </span>
+
+                  <select
+                    value={mode}
+                    onChange={(event) =>
+                      setMode(event.target.value as ImportMode)
+                    }
+                    className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2"
+                  >
+                    <option value="create">
+                      Create new table
+                    </option>
+                    <option
+                      value="append"
+                      disabled={tables.length === 0}
+                    >
+                      Append rows
+                    </option>
+                    <option
+                      value="replace"
+                      disabled={tables.length === 0}
+                    >
+                      Replace table
+                    </option>
+                  </select>
+                </label>
+
+                {mode === "create" ? (
+                  <label>
+                    <span className="text-sm font-semibold text-slate-700">
+                      New table name
+                    </span>
+
+                    <input
+                      value={newTableName}
+                      onChange={(event) =>
+                        setNewTableName(event.target.value)
+                      }
+                      className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2"
+                    />
+                  </label>
+                ) : (
+                  <label>
+                    <span className="text-sm font-semibold text-slate-700">
+                      Existing table
+                    </span>
+
+                    <select
+                      value={activeExistingTableName}
+                      onChange={(event) =>
+                        setExistingTableName(
+                          event.target.value,
+                        )
+                      }
+                      className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2"
+                    >
+                      {tables.map((table) => (
+                        <option
+                          key={table.name}
+                          value={table.name}
+                        >
+                          {table.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
               </section>
 
               <section>
@@ -246,42 +422,32 @@ export function FileImportDialog({
 
                 <p className="mt-1 text-sm text-slate-500">
                   {preview.columns.length} columns and{" "}
-                  {preview.totalRows} data rows detected.
+                  {preview.totalRows.toLocaleString("en-US")} rows
                 </p>
 
                 <div className="mt-3 overflow-auto rounded-xl border border-slate-200">
-                  <table className="min-w-full border-collapse text-left text-sm">
+                  <table className="min-w-full text-left text-sm">
                     <thead className="bg-slate-100">
                       <tr>
-                        <th className="border-b border-r border-slate-200 px-3 py-2 font-semibold text-slate-700">
-                          Source column
-                        </th>
-
-                        <th className="border-b border-r border-slate-200 px-3 py-2 font-semibold text-slate-700">
-                          SQL column
-                        </th>
-
-                        <th className="border-b border-slate-200 px-3 py-2 font-semibold text-slate-700">
-                          Detected type
-                        </th>
+                        <th className="px-3 py-2">Source</th>
+                        <th className="px-3 py-2">SQL column</th>
+                        <th className="px-3 py-2">Type</th>
                       </tr>
                     </thead>
 
                     <tbody>
                       {preview.columns.map((column) => (
                         <tr
-                          key={`${column.sourceName}-${column.targetName}`}
-                          className="odd:bg-white even:bg-slate-50"
+                          key={column.targetName}
+                          className="border-t border-slate-100"
                         >
-                          <td className="border-b border-r border-slate-100 px-3 py-2 text-slate-700">
+                          <td className="px-3 py-2">
                             {column.sourceName}
                           </td>
-
-                          <td className="border-b border-r border-slate-100 px-3 py-2 font-mono text-slate-700">
+                          <td className="px-3 py-2 font-mono">
                             {column.targetName}
                           </td>
-
-                          <td className="border-b border-slate-100 px-3 py-2 text-slate-700">
+                          <td className="px-3 py-2">
                             {column.detectedType}
                           </td>
                         </tr>
@@ -296,63 +462,45 @@ export function FileImportDialog({
                   Data Preview
                 </h4>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  Showing up to {PREVIEW_ROW_LIMIT} rows.
-                </p>
+                <div className="mt-3 max-h-[320px] overflow-auto rounded-xl border border-slate-200">
+                  <table className="min-w-full text-left text-sm">
+                    <thead className="sticky top-0 bg-slate-100">
+                      <tr>
+                        {preview.columns.map((column) => (
+                          <th
+                            key={column.targetName}
+                            className="whitespace-nowrap px-3 py-2"
+                          >
+                            {column.targetName}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
 
-                <div className="mt-3 max-h-[360px] overflow-auto rounded-xl border border-slate-200">
-                  {preview.columns.length > 0 &&
-                  preview.rows.length > 0 ? (
-                    <table className="min-w-full border-collapse text-left text-sm">
-                      <thead className="sticky top-0 z-10 bg-slate-100">
-                        <tr>
-                          {preview.columns.map((column) => (
-                            <th
-                              key={column.targetName}
-                              className="whitespace-nowrap border-b border-r border-slate-200 px-3 py-2 font-semibold text-slate-700 last:border-r-0"
-                            >
-                              {column.targetName}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-
-                      <tbody>
-                        {preview.rows
-                          .slice(0, PREVIEW_ROW_LIMIT)
-                          .map((row, rowIndex) => (
-                            <tr
-                              key={rowIndex}
-                              className="odd:bg-white even:bg-slate-50"
-                            >
-                              {preview.columns.map(
-                                (column, columnIndex) => {
-                                  const value =
-                                    row[columnIndex] ?? null;
-
-                                  return (
-                                    <td
-                                      key={column.targetName}
-                                      className={`whitespace-nowrap border-b border-r border-slate-100 px-3 py-2 last:border-r-0 ${
-                                        value === null
-                                          ? "italic text-slate-400"
-                                          : "text-slate-700"
-                                      }`}
-                                    >
-                                      {formatPreviewValue(value)}
-                                    </td>
-                                  );
-                                },
-                              )}
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <div className="p-8 text-center text-sm text-slate-500">
-                      No importable rows were detected.
-                    </div>
-                  )}
+                    <tbody>
+                      {preview.rows
+                        .slice(0, PREVIEW_ROW_LIMIT)
+                        .map((row, rowIndex) => (
+                          <tr
+                            key={rowIndex}
+                            className="border-t border-slate-100"
+                          >
+                            {preview.columns.map(
+                              (column, columnIndex) => (
+                                <td
+                                  key={column.targetName}
+                                  className="whitespace-nowrap px-3 py-2"
+                                >
+                                  {formatPreviewValue(
+                                    row[columnIndex] ?? null,
+                                  )}
+                                </td>
+                              ),
+                            )}
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
                 </div>
               </section>
             </>
@@ -363,17 +511,23 @@ export function FileImportDialog({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            disabled={isImporting}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700"
           >
             Cancel
           </button>
 
           <button
             type="button"
-            disabled
-            className="cursor-not-allowed rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-400"
+            onClick={() => void importFile()}
+            disabled={!canImport}
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
           >
-            Import to Database — Next Step
+            {isImporting
+              ? "Importing..."
+              : `Import ${
+                  preview?.totalRows.toLocaleString("en-US") ?? 0
+                } Rows`}
           </button>
         </footer>
       </section>
