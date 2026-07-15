@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Save, X } from "lucide-react";
 
 import type {
@@ -12,7 +12,6 @@ import type {
 type EditorMode = "insert" | "edit";
 
 type RowEditorDialogProps = {
-  isOpen: boolean;
   mode: EditorMode;
   tableName: string;
   columns: DatabaseColumn[];
@@ -95,6 +94,24 @@ function createFieldState(
   };
 }
 
+function createInitialFields(
+  columns: DatabaseColumn[],
+  mode: EditorMode,
+  initialValues?: DatabaseRecord,
+): FieldStateMap {
+  const fields: FieldStateMap = {};
+
+  for (const column of columns) {
+    fields[column.name] = createFieldState(
+      column,
+      mode,
+      initialValues?.[column.name],
+    );
+  }
+
+  return fields;
+}
+
 function parseFieldValue(
   column: DatabaseColumn,
   rawValue: string,
@@ -127,7 +144,6 @@ function parseFieldValue(
 }
 
 export function RowEditorDialog({
-  isOpen,
   mode,
   tableName,
   columns,
@@ -137,32 +153,12 @@ export function RowEditorDialog({
   onClose,
   onSave,
 }: RowEditorDialogProps) {
-  const [fields, setFields] = useState<FieldStateMap>({});
+  const [fields, setFields] = useState<FieldStateMap>(() =>
+    createInitialFields(columns, mode, initialValues),
+  );
+
   const [validationError, setValidationError] =
     useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const nextFields: FieldStateMap = {};
-
-    for (const column of columns) {
-      nextFields[column.name] = createFieldState(
-        column,
-        mode,
-        initialValues?.[column.name],
-      );
-    }
-
-    setFields(nextFields);
-    setValidationError(null);
-  }, [columns, initialValues, isOpen, mode]);
-
-  if (!isOpen) {
-    return null;
-  }
 
   function updateField(
     columnName: string,

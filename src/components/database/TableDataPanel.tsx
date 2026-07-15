@@ -67,13 +67,6 @@ export function TableDataPanel({
     useState<DatabaseRow | null>(null);
 
   useEffect(() => {
-    setOffset(0);
-    setEditorMode(null);
-    setEditingRow(null);
-    setMutationError(null);
-  }, [tableName]);
-
-  useEffect(() => {
     let isActive = true;
 
     async function loadTableData() {
@@ -435,23 +428,24 @@ export function TableDataPanel({
         </div>
       </section>
 
-      <RowEditorDialog
-        isOpen={editorMode !== null}
-        mode={editorMode ?? "insert"}
-        tableName={tableName}
-        columns={tableData?.columns ?? []}
-        initialValues={editingRow?.values}
-        isSaving={isSaving}
-        error={mutationError}
-        onClose={() => {
-          if (!isSaving) {
-            setEditorMode(null);
-            setEditingRow(null);
-            setMutationError(null);
-          }
-        }}
-        onSave={saveRow}
-      />
+      {editorMode !== null && tableData && (
+        <RowEditorDialog
+          mode={editorMode}
+          tableName={tableName}
+          columns={tableData.columns}
+          initialValues={editingRow?.values}
+          isSaving={isSaving}
+          error={mutationError}
+          onClose={() => {
+            if (!isSaving) {
+              setEditorMode(null);
+              setEditingRow(null);
+              setMutationError(null);
+            }
+          }}
+          onSave={saveRow}
+        />
+      )}
     </>
   );
 }

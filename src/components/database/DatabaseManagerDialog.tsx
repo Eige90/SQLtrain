@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Cloud,
   Eye,
@@ -36,19 +36,11 @@ export function DatabaseManagerDialog({
   const [selectedTableName, setSelectedTableName] =
     useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const selectedTableStillExists = tables.some(
-      (table) => table.name === selectedTableName,
-    );
-
-    if (!selectedTableStillExists) {
-      setSelectedTableName(tables[0]?.name ?? null);
-    }
-  }, [isOpen, selectedTableName, tables]);
+  const activeTableName: string | null = tables.some(
+    (table) => table.name === selectedTableName,
+  )
+    ? selectedTableName
+    : (tables[0]?.name ?? null);
 
   if (!isOpen) {
     return null;
@@ -120,7 +112,7 @@ export function DatabaseManagerDialog({
               <div className="overflow-hidden rounded-xl border border-slate-200">
                 {tables.map((table) => {
                   const isSelected =
-                    table.name === selectedTableName;
+                    table.name === activeTableName;
 
                   return (
                     <div
@@ -183,7 +175,8 @@ export function DatabaseManagerDialog({
             </section>
 
             <TableDataPanel
-              tableName={selectedTableName}
+              key={activeTableName ?? "no-table"}
+              tableName={activeTableName}
               onDatabaseChanged={onDatabaseChanged}
             />
           </div>
