@@ -189,6 +189,7 @@ export function SqlWorkbench() {
         tables={tables}
         onClose={() => setIsManagerOpen(false)}
         onUseSql={useSqlFromManager}
+        onDatabaseChanged={refreshTables}
       />
     </main>
   );

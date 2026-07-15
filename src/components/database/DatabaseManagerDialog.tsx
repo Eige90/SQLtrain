@@ -18,6 +18,7 @@ type DatabaseManagerDialogProps = {
   tables: DatabaseTableSummary[];
   onClose: () => void;
   onUseSql: (sql: string) => void;
+  onDatabaseChanged: () => Promise<void> | void;
 };
 
 const CREATE_TABLE_TEMPLATE = `CREATE TABLE NewTable (
@@ -30,6 +31,7 @@ export function DatabaseManagerDialog({
   tables,
   onClose,
   onUseSql,
+  onDatabaseChanged,
 }: DatabaseManagerDialogProps) {
   const [selectedTableName, setSelectedTableName] =
     useState<string | null>(null);
@@ -73,8 +75,9 @@ export function DatabaseManagerDialog({
             >
               Database Manager
             </h2>
+
             <p className="mt-1 text-sm text-slate-500">
-              Inspect tables and manage your local training database.
+              Inspect and edit your local training database.
             </p>
           </div>
 
@@ -96,14 +99,17 @@ export function DatabaseManagerDialog({
                   <h3 className="font-semibold text-slate-900">
                     Tables
                   </h3>
+
                   <p className="mt-1 text-sm text-slate-500">
-                    Select a table to preview its records.
+                    Select a table to inspect and edit its records.
                   </p>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => onUseSql(CREATE_TABLE_TEMPLATE)}
+                  onClick={() =>
+                    onUseSql(CREATE_TABLE_TEMPLATE)
+                  }
                   className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
                 >
                   <Plus size={16} aria-hidden="true" />
@@ -120,13 +126,16 @@ export function DatabaseManagerDialog({
                     <div
                       key={table.name}
                       className={`flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0 ${
-                        isSelected ? "bg-emerald-50" : "bg-white"
+                        isSelected
+                          ? "bg-emerald-50"
+                          : "bg-white"
                       }`}
                     >
                       <div>
                         <p className="font-medium text-slate-900">
                           {table.name}
                         </p>
+
                         <p className="text-xs text-slate-500">
                           {table.recordCount} records
                         </p>
@@ -173,12 +182,10 @@ export function DatabaseManagerDialog({
               </div>
             </section>
 
-            <TableDataPanel tableName={selectedTableName} />
-
-            <p className="text-sm leading-6 text-slate-600">
-              This preview is currently read-only. Direct row editing,
-              insertion, deletion, and pagination will be added next.
-            </p>
+            <TableDataPanel
+              tableName={selectedTableName}
+              onDatabaseChanged={onDatabaseChanged}
+            />
           </div>
 
           <aside className="space-y-4">
@@ -213,9 +220,9 @@ export function DatabaseManagerDialog({
               </div>
 
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                PostgreSQL, MySQL, and SQL Server connections will
-                use a secure backend adapter instead of exposing
-                credentials in the browser.
+                PostgreSQL, MySQL, and SQL Server connections
+                will use a secure backend adapter instead of
+                exposing credentials in the browser.
               </p>
 
               <span className="mt-4 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
