@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 
+import { FileImportDialog } from "@/components/database/FileImportDialog";
 import { TableDataPanel } from "@/components/database/TableDataPanel";
 import type { DatabaseTableSummary } from "@/types/database";
 
@@ -35,6 +36,9 @@ export function DatabaseManagerDialog({
 }: DatabaseManagerDialogProps) {
   const [selectedTableName, setSelectedTableName] =
     useState<string | null>(null);
+
+  const [isImportDialogOpen, setIsImportDialogOpen] =
+    useState(false);
 
   const activeTableName: string | null = tables.some(
     (table) => table.name === selectedTableName,
@@ -199,10 +203,10 @@ export function DatabaseManagerDialog({
 
               <button
                 type="button"
-                disabled
-                className="mt-4 w-full cursor-not-allowed rounded-lg bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-400"
+                onClick={() => setIsImportDialogOpen(true)}
+                className="mt-4 w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
               >
-                Import File — Coming Later
+                Import Excel or CSV
               </button>
             </div>
 
@@ -225,6 +229,12 @@ export function DatabaseManagerDialog({
           </aside>
         </div>
       </section>
+
+      {isImportDialogOpen && (
+        <FileImportDialog
+          onClose={() => setIsImportDialogOpen(false)}
+        />
+      )}
     </div>
   );
 }
