@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  Cloud,
   Eye,
   FileSpreadsheet,
   PencilLine,
@@ -196,9 +195,9 @@ export function DatabaseManagerDialog({
               </div>
 
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                File selection, column mapping, preview, and
-                transactional import are planned for a later
-                milestone.
+                Import XLSX, XLS, or CSV files directly in your
+                browser. Files remain on your device and are not
+                uploaded to a server.
               </p>
 
               <button
@@ -210,22 +209,6 @@ export function DatabaseManagerDialog({
               </button>
             </div>
 
-            <div className="rounded-xl border border-slate-200 p-4">
-              <div className="flex items-center gap-2 font-semibold text-slate-900">
-                <Cloud size={18} aria-hidden="true" />
-                Cloud Connections
-              </div>
-
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                PostgreSQL, MySQL, and SQL Server connections
-                will use a secure backend adapter instead of
-                exposing credentials in the browser.
-              </p>
-
-              <span className="mt-4 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
-                Planned
-              </span>
-            </div>
           </aside>
         </div>
       </section>
