@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 
+import { DeleteTableButton } from "@/components/database/DeleteTableButton";
 import { FileImportDialog } from "@/components/database/FileImportDialog";
 import { TableDataPanel } from "@/components/database/TableDataPanel";
 import type { DatabaseTableSummary } from "@/types/database";
@@ -170,6 +171,12 @@ export function DatabaseManagerDialog({
                           />
                           Open in Editor
                         </button>
+
+                        <DeleteTableButton
+                          tableName={table.name}
+                          recordCount={table.recordCount}
+                          onDeleted={onDatabaseChanged}
+                        />
                       </div>
                     </div>
                   );
