@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Play, RotateCcw } from "lucide-react";
+import { ExternalLink, Play, RotateCcw, ShieldCheck, TrainFront } from "lucide-react";
 
 import { DatabaseManagerDialog } from "@/components/database/DatabaseManagerDialog";
 import { DatabaseSidebar } from "@/components/database/DatabaseSidebar";
@@ -131,18 +131,45 @@ export function SqlWorkbench() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100">
-      <header className="border-b border-slate-800 bg-slate-950 text-white">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-4 sm:px-6">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">SQLTrain</h1>
-            <p className="text-sm text-slate-400">Interactive SQL training environment</p>
+    <main className="min-h-screen bg-transparent">
+      <header className="border-b border-sky-400/20 bg-[linear-gradient(135deg,#07111f_0%,#0b1b33_55%,#312e81_100%)] text-white shadow-xl shadow-slate-950/20">
+        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-6">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-400/15 ring-1 ring-sky-300/30">
+              <TrainFront
+                size={28}
+                className="text-sky-300"
+                aria-hidden="true"
+              />
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-300">
+                All aboard
+              </p>
+
+              <h1 className="text-3xl font-black tracking-tight">
+                SQLTrain
+              </h1>
+
+              <p className="mt-1 text-sm text-slate-300">
+                Practice SQL safely with your own data.
+              </p>
+            </div>
           </div>
-          <span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-300">
-            {storageInfo?.storageMode === "persistent"
-              ? "SQLite · Saved in Browser"
-              : "SQLite · Temporary Session"}
-          </span>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex items-center gap-2 rounded-full bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 ring-1 ring-emerald-300/20">
+              <ShieldCheck size={14} aria-hidden="true" />
+              Local and private
+            </span>
+
+            <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-slate-200 ring-1 ring-white/10">
+              {storageInfo?.storageMode === "persistent"
+                ? "SQLite · Saved in Browser"
+                : "SQLite · Temporary Session"}
+            </span>
+          </div>
         </div>
       </header>
 
@@ -199,6 +226,30 @@ export function SqlWorkbench() {
           onReset={() => void restoreDatabase()}
         />
       </div>
+
+      <footer className="mt-8 border-t border-slate-800 bg-[#07111f] px-4 py-6 text-slate-300 sm:px-6">
+        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="font-semibold text-white">
+              Jump aboard SQLTrain.
+            </p>
+
+            <p className="mt-1 text-sm text-slate-400">
+              Your SQL queries, files, and database remain in your browser.
+            </p>
+          </div>
+
+          <a
+            href="https://github.com/Eige90"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-sky-300 transition hover:bg-white/5 hover:text-sky-200"
+          >
+            <ExternalLink size={18} aria-hidden="true" />
+            Built by Eige90
+          </a>
+        </div>
+      </footer>
 
       <DatabaseManagerDialog
         isOpen={isManagerOpen}
