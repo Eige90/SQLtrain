@@ -185,6 +185,78 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     isEarned: (ids) =>
       completedRange(ids, 59, 60),
   },
+  {
+    id: "data-cleaner",
+    title: "Data Cleaner",
+    description:
+      "Complete the DELETE lesson group.",
+    icon: "🧹",
+    isEarned: (ids) =>
+      hasCompletedLesson(ids, 61) &&
+      hasCompletedLesson(ids, 65),
+  },
+  {
+    id: "bulk-loader",
+    title: "Bulk Loader",
+    description:
+      "Insert several rows and copy query results.",
+    icon: "📦",
+    isEarned: (ids) =>
+      completedRange(ids, 62, 63),
+  },
+  {
+    id: "upsert-specialist",
+    title: "Upsert Specialist",
+    description:
+      "Master INSERT ON CONFLICT.",
+    icon: "♻️",
+    isEarned: (ids) =>
+      hasCompletedLesson(ids, 66),
+  },
+  {
+    id: "schema-mechanic",
+    title: "Schema Mechanic",
+    description:
+      "Add, rename, and remove database structures.",
+    icon: "🔧",
+    isEarned: (ids) =>
+      completedRange(ids, 67, 70),
+  },
+  {
+    id: "index-engineer",
+    title: "Index Engineer",
+    description:
+      "Create standard and unique indexes.",
+    icon: "🚀",
+    isEarned: (ids) =>
+      completedRange(ids, 71, 72),
+  },
+  {
+    id: "view-designer",
+    title: "View Designer",
+    description:
+      "Create your first reusable SQL view.",
+    icon: "👁️",
+    isEarned: (ids) =>
+      hasCompletedLesson(ids, 73),
+  },
+  {
+    id: "transaction-controller",
+    title: "Transaction Controller",
+    description:
+      "Master COMMIT and ROLLBACK.",
+    icon: "🛡️",
+    isEarned: (ids) =>
+      completedRange(ids, 74, 75),
+  },
+  {
+    id: "three-quarter-station",
+    title: "Three-Quarter Station",
+    description:
+      "Complete seventy-five SQL lessons.",
+    icon: "🚄",
+    isEarned: (ids) => ids.length >= 75,
+  },
 ];
 
 export function getLessonXp(

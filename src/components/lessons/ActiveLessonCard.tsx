@@ -46,6 +46,12 @@ export function ActiveLessonCard({
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
               {lesson.task}
             </p>
+
+            {lesson.executionMode === "sandbox" && (
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-300 bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-900">
+                🛡️ Safe Sandbox · Your database will not be changed
+              </div>
+            )}
           </div>
 
           {isCompleted && (

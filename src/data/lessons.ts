@@ -1053,6 +1053,308 @@ export const SQL_LESSONS: SqlLesson[] = [
     "setupSql": "CREATE TABLE TrainingProducts (\n  ProductID INTEGER PRIMARY KEY,\n  ProductName TEXT NOT NULL,\n  Price REAL NOT NULL\n);\n\nINSERT INTO TrainingProducts (\n  ProductID,\n  ProductName,\n  Price\n)\nVALUES\n  (1, 'Keyboard', 49.99),\n  (2, 'Mouse', 24.95),\n  (3, 'Monitor', 199.00);",
     "verificationSql": "SELECT\n  ProductID,\n  ProductName,\n  Price\nFROM TrainingProducts\nORDER BY ProductID;"
   }
+,
+
+  {
+    "id": "delete-matching-rows",
+    "number": 61,
+    "title": "Delete Matching Rows",
+    "topic": "DELETE",
+    "difficulty": "Beginner",
+    "description": "DELETE removes rows that match a condition.",
+    "task": "Delete every completed task from TrainingTasks. Keep the unfinished tasks.",
+    "starterSql": "",
+    "solutionSql": "DELETE FROM TrainingTasks\nWHERE Completed = 1;",
+    "hints": [
+      "Begin with DELETE FROM TrainingTasks.",
+      "Completed tasks contain the value 1.",
+      "Without WHERE every row would be deleted."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE TrainingTasks (\n  TaskID INTEGER PRIMARY KEY,\n  Title TEXT NOT NULL,\n  Completed INTEGER NOT NULL\n);\n\nINSERT INTO TrainingTasks (\n  TaskID,\n  Title,\n  Completed\n)\nVALUES\n  (1, 'Learn SELECT', 1),\n  (2, 'Learn DELETE', 0),\n  (3, 'Practise JOIN', 1),\n  (4, 'Build a project', 0);",
+    "verificationSql": "SELECT\n  TaskID,\n  Title,\n  Completed\nFROM TrainingTasks\nORDER BY TaskID;"
+  },
+  {
+    "id": "insert-multiple-rows",
+    "number": 62,
+    "title": "Insert Multiple Rows",
+    "topic": "INSERT",
+    "difficulty": "Beginner",
+    "description": "A single INSERT statement can add several rows.",
+    "task": "Insert three stations into TrainStations: Berlin with position 1, Hamburg with position 2, and Munich with position 3.",
+    "starterSql": "",
+    "solutionSql": "INSERT INTO TrainStations (\n  StationID,\n  StationName,\n  Position\n)\nVALUES\n  (1, 'Berlin', 1),\n  (2, 'Hamburg', 2),\n  (3, 'Munich', 3);",
+    "hints": [
+      "Write one column list.",
+      "Separate each row of values with a comma.",
+      "Text values require single quotes."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE TrainStations (\n  StationID INTEGER PRIMARY KEY,\n  StationName TEXT NOT NULL,\n  Position INTEGER NOT NULL\n);",
+    "verificationSql": "SELECT\n  StationID,\n  StationName,\n  Position\nFROM TrainStations\nORDER BY StationID;"
+  },
+  {
+    "id": "insert-from-select",
+    "number": 63,
+    "title": "Insert Data from a Query",
+    "topic": "INSERT SELECT",
+    "difficulty": "Intermediate",
+    "description": "INSERT SELECT copies the result of a query into another table.",
+    "task": "Copy every product priced at 50 or more from SourceProducts into PremiumProducts.",
+    "starterSql": "",
+    "solutionSql": "INSERT INTO PremiumProducts (\n  ProductID,\n  ProductName,\n  Price\n)\nSELECT\n  ProductID,\n  ProductName,\n  Price\nFROM SourceProducts\nWHERE Price >= 50;",
+    "hints": [
+      "Do not use VALUES.",
+      "Place a SELECT statement after the target column list.",
+      "Filter SourceProducts using Price >= 50."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE SourceProducts (\n  ProductID INTEGER PRIMARY KEY,\n  ProductName TEXT NOT NULL,\n  Price REAL NOT NULL\n);\n\nCREATE TABLE PremiumProducts (\n  ProductID INTEGER PRIMARY KEY,\n  ProductName TEXT NOT NULL,\n  Price REAL NOT NULL\n);\n\nINSERT INTO SourceProducts (\n  ProductID,\n  ProductName,\n  Price\n)\nVALUES\n  (1, 'Keyboard', 49.99),\n  (2, 'Monitor', 199.00),\n  (3, 'Mouse', 24.95),\n  (4, 'Office Chair', 89.50);",
+    "verificationSql": "SELECT\n  ProductID,\n  ProductName,\n  Price\nFROM PremiumProducts\nORDER BY ProductID;"
+  },
+  {
+    "id": "update-several-rows",
+    "number": 64,
+    "title": "Update Several Rows",
+    "topic": "UPDATE",
+    "difficulty": "Intermediate",
+    "description": "UPDATE can modify every row matching a WHERE condition.",
+    "task": "Increase Stock by 5 for every Inventory item whose Stock is below 10.",
+    "starterSql": "",
+    "solutionSql": "UPDATE Inventory\nSET Stock = Stock + 5\nWHERE Stock < 10;",
+    "hints": [
+      "A column can be used in its own calculation.",
+      "Use Stock = Stock + 5.",
+      "Only rows below 10 should be changed."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE Inventory (\n  ProductID INTEGER PRIMARY KEY,\n  ProductName TEXT NOT NULL,\n  Stock INTEGER NOT NULL\n);\n\nINSERT INTO Inventory (\n  ProductID,\n  ProductName,\n  Stock\n)\nVALUES\n  (1, 'Keyboard', 4),\n  (2, 'Mouse', 15),\n  (3, 'Monitor', 7),\n  (4, 'Headset', 21);",
+    "verificationSql": "SELECT\n  ProductID,\n  ProductName,\n  Stock\nFROM Inventory\nORDER BY ProductID;"
+  },
+  {
+    "id": "delete-all-rows",
+    "number": 65,
+    "title": "Empty a Table",
+    "topic": "DELETE",
+    "difficulty": "Beginner",
+    "description": "DELETE without WHERE removes every row but keeps the table structure.",
+    "task": "Remove every row from TemporaryNotes without deleting the table.",
+    "starterSql": "",
+    "solutionSql": "DELETE FROM TemporaryNotes;",
+    "hints": [
+      "Do not add a WHERE clause.",
+      "Use DELETE rather than DROP TABLE.",
+      "The table must continue to exist."
+    ],
+    "resultOrderMatters": false,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE TemporaryNotes (\n  NoteID INTEGER PRIMARY KEY,\n  NoteText TEXT\n);\n\nINSERT INTO TemporaryNotes (\n  NoteID,\n  NoteText\n)\nVALUES\n  (1, 'First note'),\n  (2, 'Second note'),\n  (3, 'Third note');",
+    "verificationSql": "SELECT\n  CASE\n    WHEN EXISTS (\n      SELECT 1\n      FROM sqlite_master\n      WHERE type = 'table'\n        AND name = 'TemporaryNotes'\n    )\n    THEN 1\n    ELSE 0\n  END AS TableStillExists,\n  COUNT(*) AS RemainingRows\nFROM TemporaryNotes;"
+  },
+  {
+    "id": "upsert-setting",
+    "number": 66,
+    "title": "Insert or Update with UPSERT",
+    "topic": "ON CONFLICT",
+    "difficulty": "Advanced",
+    "description": "UPSERT inserts a row or updates it when a key conflict occurs.",
+    "task": "Insert UserID 1 with Theme Dark into UserSettings. If UserID 1 already exists, update its Theme to Dark.",
+    "starterSql": "",
+    "solutionSql": "INSERT INTO UserSettings (\n  UserID,\n  Theme\n)\nVALUES (\n  1,\n  'Dark'\n)\nON CONFLICT (UserID)\nDO UPDATE SET\n  Theme = excluded.Theme;",
+    "hints": [
+      "UserID is the conflicting primary key.",
+      "Use ON CONFLICT (UserID).",
+      "excluded.Theme contains the attempted new value."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE UserSettings (\n  UserID INTEGER PRIMARY KEY,\n  Theme TEXT NOT NULL\n);\n\nINSERT INTO UserSettings (\n  UserID,\n  Theme\n)\nVALUES (\n  1,\n  'Light'\n);",
+    "verificationSql": "SELECT\n  UserID,\n  Theme\nFROM UserSettings\nORDER BY UserID;"
+  },
+  {
+    "id": "alter-add-column",
+    "number": 67,
+    "title": "Add a Column",
+    "topic": "ALTER TABLE",
+    "difficulty": "Intermediate",
+    "description": "ALTER TABLE ADD COLUMN extends an existing table.",
+    "task": "Add an Email column with the TEXT data type to Staff.",
+    "starterSql": "",
+    "solutionSql": "ALTER TABLE Staff\nADD COLUMN Email TEXT;",
+    "hints": [
+      "Begin with ALTER TABLE Staff.",
+      "Use ADD COLUMN.",
+      "The new column is named Email."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE Staff (\n  StaffID INTEGER PRIMARY KEY,\n  Name TEXT NOT NULL\n);",
+    "verificationSql": "SELECT\n  name AS ColumnName,\n  type AS DeclaredType\nFROM pragma_table_info('Staff')\nORDER BY cid;"
+  },
+  {
+    "id": "alter-rename-column",
+    "number": 68,
+    "title": "Rename a Column",
+    "topic": "ALTER TABLE",
+    "difficulty": "Intermediate",
+    "description": "ALTER TABLE RENAME COLUMN changes a column name.",
+    "task": "Rename the Quantity column in InventoryTest to Stock.",
+    "starterSql": "",
+    "solutionSql": "ALTER TABLE InventoryTest\nRENAME COLUMN Quantity TO Stock;",
+    "hints": [
+      "Use RENAME COLUMN.",
+      "The old name is Quantity.",
+      "The new name is Stock."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE InventoryTest (\n  ProductID INTEGER PRIMARY KEY,\n  Quantity INTEGER NOT NULL\n);",
+    "verificationSql": "SELECT\n  name AS ColumnName,\n  type AS DeclaredType\nFROM pragma_table_info('InventoryTest')\nORDER BY cid;"
+  },
+  {
+    "id": "alter-rename-table",
+    "number": 69,
+    "title": "Rename a Table",
+    "topic": "ALTER TABLE",
+    "difficulty": "Intermediate",
+    "description": "ALTER TABLE RENAME TO changes the name of a table.",
+    "task": "Rename DraftOrders to ArchivedOrders.",
+    "starterSql": "",
+    "solutionSql": "ALTER TABLE DraftOrders\nRENAME TO ArchivedOrders;",
+    "hints": [
+      "Begin with ALTER TABLE DraftOrders.",
+      "Use RENAME TO.",
+      "Do not create a second table."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE DraftOrders (\n  OrderID INTEGER PRIMARY KEY,\n  OrderName TEXT\n);",
+    "verificationSql": "SELECT\n  name AS TableName\nFROM sqlite_master\nWHERE type = 'table'\n  AND name IN (\n    'DraftOrders',\n    'ArchivedOrders'\n  )\nORDER BY name;"
+  },
+  {
+    "id": "drop-table",
+    "number": 70,
+    "title": "Delete a Table Structure",
+    "topic": "DROP TABLE",
+    "difficulty": "Intermediate",
+    "description": "DROP TABLE permanently removes a table and its rows.",
+    "task": "Delete the table named ObsoleteData.",
+    "starterSql": "",
+    "solutionSql": "DROP TABLE ObsoleteData;",
+    "hints": [
+      "Use DROP TABLE.",
+      "This differs from DELETE.",
+      "The table should no longer exist."
+    ],
+    "resultOrderMatters": false,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE ObsoleteData (\n  DataID INTEGER PRIMARY KEY,\n  Content TEXT\n);\n\nINSERT INTO ObsoleteData (\n  DataID,\n  Content\n)\nVALUES (\n  1,\n  'Old data'\n);",
+    "verificationSql": "SELECT\n  COUNT(*) AS RemainingTables\nFROM sqlite_master\nWHERE type = 'table'\n  AND name = 'ObsoleteData';"
+  },
+  {
+    "id": "create-index",
+    "number": 71,
+    "title": "Create an Index",
+    "topic": "CREATE INDEX",
+    "difficulty": "Intermediate",
+    "description": "An index can speed up searches and joins on selected columns.",
+    "task": "Create an index named idx_orders_customer on OrdersTest.CustomerID.",
+    "starterSql": "",
+    "solutionSql": "CREATE INDEX idx_orders_customer\nON OrdersTest (CustomerID);",
+    "hints": [
+      "Begin with CREATE INDEX.",
+      "Specify the table after ON.",
+      "Place CustomerID inside parentheses."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE OrdersTest (\n  OrderID INTEGER PRIMARY KEY,\n  CustomerID INTEGER NOT NULL,\n  OrderDate TEXT\n);",
+    "verificationSql": "SELECT\n  indexes.name AS IndexName,\n  indexes.\"unique\" AS IsUnique,\n  columns.name AS ColumnName\nFROM pragma_index_list('OrdersTest') AS indexes\nJOIN pragma_index_info(indexes.name) AS columns\nWHERE indexes.name = 'idx_orders_customer'\nORDER BY columns.seqno;"
+  },
+  {
+    "id": "create-unique-index",
+    "number": 72,
+    "title": "Create a Unique Index",
+    "topic": "CREATE UNIQUE INDEX",
+    "difficulty": "Advanced",
+    "description": "A unique index speeds up searches and prevents duplicate values.",
+    "task": "Create a unique index named idx_users_email on UsersTest.Email.",
+    "starterSql": "",
+    "solutionSql": "CREATE UNIQUE INDEX idx_users_email\nON UsersTest (Email);",
+    "hints": [
+      "Use CREATE UNIQUE INDEX.",
+      "The index name is idx_users_email.",
+      "The indexed column is Email."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE UsersTest (\n  UserID INTEGER PRIMARY KEY,\n  Email TEXT NOT NULL\n);\n\nINSERT INTO UsersTest (\n  UserID,\n  Email\n)\nVALUES\n  (1, 'anna@example.com'),\n  (2, 'ben@example.com');",
+    "verificationSql": "SELECT\n  indexes.name AS IndexName,\n  indexes.\"unique\" AS IsUnique,\n  columns.name AS ColumnName\nFROM pragma_index_list('UsersTest') AS indexes\nJOIN pragma_index_info(indexes.name) AS columns\nWHERE indexes.name = 'idx_users_email'\nORDER BY columns.seqno;"
+  },
+  {
+    "id": "create-view",
+    "number": 73,
+    "title": "Create a View",
+    "topic": "CREATE VIEW",
+    "difficulty": "Intermediate",
+    "description": "A view stores a reusable SELECT statement.",
+    "task": "Create a view named HighValueSales containing SaleID, CustomerName, and Amount for sales of at least 500.",
+    "starterSql": "",
+    "solutionSql": "CREATE VIEW HighValueSales AS\nSELECT\n  SaleID,\n  CustomerName,\n  Amount\nFROM Sales\nWHERE Amount >= 500;",
+    "hints": [
+      "Begin with CREATE VIEW HighValueSales AS.",
+      "A view is based on a SELECT statement.",
+      "Filter Amount using at least 500."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE Sales (\n  SaleID INTEGER PRIMARY KEY,\n  CustomerName TEXT NOT NULL,\n  Amount REAL NOT NULL\n);\n\nINSERT INTO Sales (\n  SaleID,\n  CustomerName,\n  Amount\n)\nVALUES\n  (1, 'Alpha GmbH', 250),\n  (2, 'Beta AG', 900),\n  (3, 'Gamma GmbH', 500),\n  (4, 'Delta AG', 125);",
+    "verificationSql": "SELECT\n  SaleID,\n  CustomerName,\n  Amount\nFROM HighValueSales\nORDER BY SaleID;"
+  },
+  {
+    "id": "commit-transaction",
+    "number": 74,
+    "title": "Commit a Transaction",
+    "topic": "BEGIN and COMMIT",
+    "difficulty": "Advanced",
+    "description": "A transaction groups several statements into one logical operation.",
+    "task": "Transfer 100 from AccountID 1 to AccountID 2. Use BEGIN and COMMIT.",
+    "starterSql": "",
+    "solutionSql": "BEGIN;\n\nUPDATE Accounts\nSET Balance = Balance - 100\nWHERE AccountID = 1;\n\nUPDATE Accounts\nSET Balance = Balance + 100\nWHERE AccountID = 2;\n\nCOMMIT;",
+    "hints": [
+      "Begin the transaction before the updates.",
+      "Subtract from account 1 and add to account 2.",
+      "COMMIT makes both changes permanent."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE Accounts (\n  AccountID INTEGER PRIMARY KEY,\n  AccountName TEXT NOT NULL,\n  Balance REAL NOT NULL\n);\n\nINSERT INTO Accounts (\n  AccountID,\n  AccountName,\n  Balance\n)\nVALUES\n  (1, 'Main Account', 1000),\n  (2, 'Savings Account', 500);",
+    "verificationSql": "SELECT\n  AccountID,\n  AccountName,\n  Balance\nFROM Accounts\nORDER BY AccountID;"
+  },
+  {
+    "id": "rollback-transaction",
+    "number": 75,
+    "title": "Roll Back a Transaction",
+    "topic": "ROLLBACK",
+    "difficulty": "Advanced",
+    "description": "ROLLBACK cancels changes made inside the current transaction.",
+    "task": "Begin a transaction, subtract 250 from AccountID 1, and then roll the transaction back.",
+    "starterSql": "",
+    "solutionSql": "BEGIN;\n\nUPDATE Accounts\nSET Balance = Balance - 250\nWHERE AccountID = 1;\n\nROLLBACK;",
+    "hints": [
+      "Start with BEGIN.",
+      "Perform the UPDATE inside the transaction.",
+      "ROLLBACK restores the original balance."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE Accounts (\n  AccountID INTEGER PRIMARY KEY,\n  AccountName TEXT NOT NULL,\n  Balance REAL NOT NULL\n);\n\nINSERT INTO Accounts (\n  AccountID,\n  AccountName,\n  Balance\n)\nVALUES\n  (1, 'Main Account', 1000),\n  (2, 'Savings Account', 500);",
+    "verificationSql": "SELECT\n  AccountID,\n  AccountName,\n  Balance\nFROM Accounts\nORDER BY AccountID;"
+  }
 
 ];
 
