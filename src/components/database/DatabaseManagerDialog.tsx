@@ -11,6 +11,7 @@ import {
 
 import { DeleteTableButton } from "@/components/database/DeleteTableButton";
 import { FileImportDialog } from "@/components/database/FileImportDialog";
+import { RelationshipsPanel } from "@/components/database/RelationshipsPanel";
 import { TableDataPanel } from "@/components/database/TableDataPanel";
 import type { DatabaseTableSummary } from "@/types/database";
 
@@ -216,6 +217,15 @@ export function DatabaseManagerDialog({
               </button>
             </div>
 
+            <RelationshipsPanel
+              key={
+                tables
+                  .map((table) => table.name)
+                  .join("|") || "no-tables"
+              }
+              tables={tables}
+              onDatabaseChanged={onDatabaseChanged}
+            />
           </aside>
         </div>
       </section>

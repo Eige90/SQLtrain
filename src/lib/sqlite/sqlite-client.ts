@@ -13,6 +13,13 @@ import type {
   ImportResult,
 } from "@/types/import";
 
+import type {
+  CreateRelationshipResult,
+  DatabaseRelationship,
+  RelationshipInput,
+  RelationshipValidationResult,
+} from "@/types/relationship";
+
 type WorkerRequest =
   | { id: string; type: "initialize" }
   | { id: string; type: "execute"; sql: string }
@@ -28,6 +35,17 @@ type WorkerRequest =
   | { id: string; type: "updateRow"; input: UpdateRowInput }
   | { id: string; type: "deleteRow"; input: DeleteRowInput }
   | { id: string; type: "importData"; input: ImportRequest }
+  | { id: string; type: "listRelationships" }
+  | {
+      id: string;
+      type: "validateRelationship";
+      input: RelationshipInput;
+    }
+  | {
+      id: string;
+      type: "createRelationship";
+      input: RelationshipInput;
+    }
   | { id: string; type: "reset" };
 
 type WorkerRequestWithoutId =
@@ -44,6 +62,15 @@ type WorkerRequestWithoutId =
   | { type: "updateRow"; input: UpdateRowInput }
   | { type: "deleteRow"; input: DeleteRowInput }
   | { type: "importData"; input: ImportRequest }
+  | { type: "listRelationships" }
+  | {
+      type: "validateRelationship";
+      input: RelationshipInput;
+    }
+  | {
+      type: "createRelationship";
+      input: RelationshipInput;
+    }
   | { type: "reset" };
 
 type WorkerResponse =
@@ -176,6 +203,30 @@ class SqliteClient {
   importData(input: ImportRequest): Promise<ImportResult> {
     return this.request({
       type: "importData",
+      input,
+    });
+  }
+
+  listRelationships(): Promise<DatabaseRelationship[]> {
+    return this.request({
+      type: "listRelationships",
+    });
+  }
+
+  validateRelationship(
+    input: RelationshipInput,
+  ): Promise<RelationshipValidationResult> {
+    return this.request({
+      type: "validateRelationship",
+      input,
+    });
+  }
+
+  createRelationship(
+    input: RelationshipInput,
+  ): Promise<CreateRelationshipResult> {
+    return this.request({
+      type: "createRelationship",
       input,
     });
   }

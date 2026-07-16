@@ -23,6 +23,15 @@ import type {
   ImportResult,
 } from "../../types/import";
 
+import type {
+  ColumnAffinity,
+  CreateRelationshipResult,
+  DatabaseRelationship,
+  ReferentialAction,
+  RelationshipInput,
+  RelationshipValidationResult,
+} from "../../types/relationship";
+
 type WorkerRequest =
   | { id: string; type: "initialize" }
   | { id: string; type: "execute"; sql: string }
@@ -38,6 +47,17 @@ type WorkerRequest =
   | { id: string; type: "updateRow"; input: UpdateRowInput }
   | { id: string; type: "deleteRow"; input: DeleteRowInput }
   | { id: string; type: "importData"; input: ImportRequest }
+  | { id: string; type: "listRelationships" }
+  | {
+      id: string;
+      type: "validateRelationship";
+      input: RelationshipInput;
+    }
+  | {
+      id: string;
+      type: "createRelationship";
+      input: RelationshipInput;
+    }
   | { id: string; type: "reset" };
 
 type WorkerResponse =
@@ -70,6 +90,7 @@ const MAX_PAGE_SIZE = 200;
 const MAX_IMPORT_ROWS = 100_000;
 const MAX_BOUND_PARAMETERS = 900;
 const IMPORT_SAVEPOINT = "sqltrain_file_import";
+const RELATIONSHIP_SAVEPOINT = "sqltrain_relationship";
 
 const PERSISTENT_DATABASE_PATH = "/sqltrain.sqlite3";
 const OPFS_POOL_NAME = "sqltrain-opfs-sahpool";
@@ -920,6 +941,675 @@ async function importData(
   }
 }
 
+const REFERENTIAL_ACTIONS =
+  new Set<ReferentialAction>([
+    "NO ACTION",
+    "RESTRICT",
+    "SET NULL",
+    "SET DEFAULT",
+    "CASCADE",
+  ]);
+
+type TableColumnInfo = {
+  name: string;
+  declaredType: string;
+  primaryKeyOrder: number;
+};
+
+function normalizeReferentialAction(
+  value: string,
+): ReferentialAction {
+  const normalized =
+    value.trim().toUpperCase() as ReferentialAction;
+
+  if (!REFERENTIAL_ACTIONS.has(normalized)) {
+    throw new Error(
+      `Unsupported referential action: ${value}`,
+    );
+  }
+
+  return normalized;
+}
+
+function getColumnAffinity(
+  declaredType: string,
+): ColumnAffinity {
+  const normalized = declaredType.trim().toUpperCase();
+
+  if (normalized.includes("INT")) {
+    return "INTEGER";
+  }
+
+  if (
+    normalized.includes("CHAR") ||
+    normalized.includes("CLOB") ||
+    normalized.includes("TEXT")
+  ) {
+    return "TEXT";
+  }
+
+  if (
+    normalized.length === 0 ||
+    normalized.includes("BLOB")
+  ) {
+    return "BLOB";
+  }
+
+  if (
+    normalized.includes("REAL") ||
+    normalized.includes("FLOA") ||
+    normalized.includes("DOUB")
+  ) {
+    return "REAL";
+  }
+
+  return "NUMERIC";
+}
+
+function affinitiesAreCompatible(
+  parentAffinity: ColumnAffinity,
+  childAffinity: ColumnAffinity,
+): boolean {
+  if (parentAffinity === childAffinity) {
+    return true;
+  }
+
+  const numericAffinities = new Set<ColumnAffinity>([
+    "INTEGER",
+    "REAL",
+    "NUMERIC",
+  ]);
+
+  return (
+    numericAffinities.has(parentAffinity) &&
+    numericAffinities.has(childAffinity)
+  );
+}
+
+function getRelationshipTableColumns(
+  database: Database,
+  tableName: string,
+): TableColumnInfo[] {
+  const rows = selectRows(
+    database,
+    `PRAGMA table_info(${quoteIdentifier(tableName)});`,
+  );
+
+  return rows.map((row) => ({
+    name: String(row[1] ?? ""),
+    declaredType: String(row[2] ?? ""),
+    primaryKeyOrder: Number(row[5] ?? 0),
+  }));
+}
+
+function getTableColumn(
+  database: Database,
+  tableName: string,
+  columnName: string,
+): TableColumnInfo {
+  const columns = getRelationshipTableColumns(database, tableName);
+
+  if (columns.length === 0) {
+    throw new Error(
+      `Table "${tableName}" does not exist.`,
+    );
+  }
+
+  const normalizedColumnName = columnName.toLowerCase();
+
+  const column = columns.find(
+    (candidate) =>
+      candidate.name.toLowerCase() === normalizedColumnName,
+  );
+
+  if (!column) {
+    throw new Error(
+      `Column "${columnName}" does not exist in table "${tableName}".`,
+    );
+  }
+
+  return column;
+}
+
+function countFirstValue(rows: SqlValue[][]): number {
+  return Number(rows[0]?.[0] ?? 0);
+}
+
+function listRelationshipsFromDatabase(
+  database: Database,
+): DatabaseRelationship[] {
+  const tableRows = selectRows(
+    database,
+    `
+      SELECT name
+      FROM sqlite_master
+      WHERE type = 'table'
+        AND name NOT LIKE 'sqlite_%'
+      ORDER BY name COLLATE NOCASE;
+    `,
+  );
+
+  const relationships: DatabaseRelationship[] = [];
+
+  for (const [rawTableName] of tableRows) {
+    const childTable = String(rawTableName ?? "");
+
+    const foreignKeyRows = selectRows(
+      database,
+      `PRAGMA foreign_key_list(${quoteIdentifier(
+        childTable,
+      )});`,
+    );
+
+    for (const row of foreignKeyRows) {
+      const foreignKeyId = Number(row[0] ?? 0);
+      const sequence = Number(row[1] ?? 0);
+      const parentTable = String(row[2] ?? "");
+      const childColumn = String(row[3] ?? "");
+      const parentColumn = String(row[4] ?? "");
+
+      relationships.push({
+        id: `${childTable}:${foreignKeyId}:${sequence}`,
+        childTable,
+        childColumn,
+        parentTable,
+        parentColumn,
+        onUpdate: normalizeReferentialAction(
+          String(row[5] ?? "NO ACTION"),
+        ),
+        onDelete: normalizeReferentialAction(
+          String(row[6] ?? "NO ACTION"),
+        ),
+        match: String(row[7] ?? "NONE"),
+      });
+    }
+  }
+
+  return relationships.sort((left, right) => {
+    const childComparison = left.childTable.localeCompare(
+      right.childTable,
+    );
+
+    if (childComparison !== 0) {
+      return childComparison;
+    }
+
+    return left.childColumn.localeCompare(
+      right.childColumn,
+    );
+  });
+}
+
+async function listRelationships(): Promise<
+  DatabaseRelationship[]
+> {
+  const database = await getDatabase();
+
+  return listRelationshipsFromDatabase(database);
+}
+
+async function validateRelationship(
+  input: RelationshipInput,
+): Promise<RelationshipValidationResult> {
+  const database = await getDatabase();
+
+  if (
+    input.parentTable.toLowerCase() ===
+    input.childTable.toLowerCase()
+  ) {
+    throw new Error(
+      "Self-referencing relationships are not supported yet.",
+    );
+  }
+
+  const parentColumn = getTableColumn(
+    database,
+    input.parentTable,
+    input.parentColumn,
+  );
+
+  const childColumn = getTableColumn(
+    database,
+    input.childTable,
+    input.childColumn,
+  );
+
+  const parentAffinity = getColumnAffinity(
+    parentColumn.declaredType,
+  );
+
+  const childAffinity = getColumnAffinity(
+    childColumn.declaredType,
+  );
+
+  const parentNullCount = countFirstValue(
+    selectRows(
+      database,
+      `
+        SELECT COUNT(*)
+        FROM ${quoteIdentifier(input.parentTable)}
+        WHERE ${quoteIdentifier(input.parentColumn)} IS NULL;
+      `,
+    ),
+  );
+
+  const parentDuplicateCount = countFirstValue(
+    selectRows(
+      database,
+      `
+        SELECT COUNT(*)
+        FROM (
+          SELECT ${quoteIdentifier(input.parentColumn)}
+          FROM ${quoteIdentifier(input.parentTable)}
+          WHERE ${quoteIdentifier(input.parentColumn)} IS NOT NULL
+          GROUP BY ${quoteIdentifier(input.parentColumn)}
+          HAVING COUNT(*) > 1
+        );
+      `,
+    ),
+  );
+
+  const orphanCount = countFirstValue(
+    selectRows(
+      database,
+      `
+        SELECT COUNT(*)
+        FROM ${quoteIdentifier(input.childTable)} AS child
+        WHERE child.${quoteIdentifier(input.childColumn)} IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1
+            FROM ${quoteIdentifier(input.parentTable)} AS parent
+            WHERE parent.${quoteIdentifier(input.parentColumn)}
+              = child.${quoteIdentifier(input.childColumn)}
+          );
+      `,
+    ),
+  );
+
+  const existing = listRelationshipsFromDatabase(
+    database,
+  ).some(
+    (relationship) =>
+      relationship.parentTable.toLowerCase() ===
+        input.parentTable.toLowerCase() &&
+      relationship.parentColumn.toLowerCase() ===
+        input.parentColumn.toLowerCase() &&
+      relationship.childTable.toLowerCase() ===
+        input.childTable.toLowerCase() &&
+      relationship.childColumn.toLowerCase() ===
+        input.childColumn.toLowerCase(),
+  );
+
+  const problems: string[] = [];
+
+  if (existing) {
+    problems.push("This relationship already exists.");
+  }
+
+  if (parentNullCount > 0) {
+    problems.push(
+      `The parent column contains ${parentNullCount} empty value(s).`,
+    );
+  }
+
+  if (parentDuplicateCount > 0) {
+    problems.push(
+      `The parent column contains ${parentDuplicateCount} duplicated key value(s).`,
+    );
+  }
+
+  if (orphanCount > 0) {
+    problems.push(
+      `The child table contains ${orphanCount} value(s) without a matching parent row.`,
+    );
+  }
+
+  if (
+    !affinitiesAreCompatible(
+      parentAffinity,
+      childAffinity,
+    )
+  ) {
+    problems.push(
+      `The column types are incompatible (${parentAffinity} and ${childAffinity}).`,
+    );
+  }
+
+  return {
+    valid: problems.length === 0,
+    existing,
+    parentNullCount,
+    parentDuplicateCount,
+    orphanCount,
+    parentAffinity,
+    childAffinity,
+    problems,
+  };
+}
+
+function identifierSlug(value: string): string {
+  const result = value
+    .replace(/[^A-Za-z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 32);
+
+  return result || "value";
+}
+
+function ensureUniqueParentIndex(
+  database: Database,
+  tableName: string,
+  columnName: string,
+): void {
+  const tableColumns = getRelationshipTableColumns(
+    database,
+    tableName,
+  );
+
+  const primaryKeyColumns = tableColumns
+    .filter((column) => column.primaryKeyOrder > 0)
+    .sort(
+      (left, right) =>
+        left.primaryKeyOrder - right.primaryKeyOrder,
+    );
+
+  if (
+    primaryKeyColumns.length === 1 &&
+    primaryKeyColumns[0].name.toLowerCase() ===
+      columnName.toLowerCase()
+  ) {
+    return;
+  }
+
+  const indexRows = selectRows(
+    database,
+    `PRAGMA index_list(${quoteIdentifier(tableName)});`,
+  );
+
+  for (const indexRow of indexRows) {
+    const indexName = String(indexRow[1] ?? "");
+    const isUnique = Number(indexRow[2] ?? 0) === 1;
+    const isPartial = Number(indexRow[4] ?? 0) === 1;
+
+    if (!indexName || !isUnique || isPartial) {
+      continue;
+    }
+
+    const indexColumns = selectRows(
+      database,
+      `PRAGMA index_info(${quoteIdentifier(
+        indexName,
+      )});`,
+    )
+      .map((row) => String(row[2] ?? ""))
+      .filter(Boolean);
+
+    if (
+      indexColumns.length === 1 &&
+      indexColumns[0].toLowerCase() ===
+        columnName.toLowerCase()
+    ) {
+      return;
+    }
+  }
+
+  const indexName = [
+    "sqltrain_uq",
+    identifierSlug(tableName),
+    identifierSlug(columnName),
+    Date.now().toString(36),
+  ].join("_");
+
+  database.exec(
+    `
+      CREATE UNIQUE INDEX ${quoteIdentifier(indexName)}
+      ON ${quoteIdentifier(tableName)}
+        (${quoteIdentifier(columnName)});
+    `,
+  );
+}
+
+function buildRelationshipTableSql(
+  originalSql: string,
+  temporaryTableName: string,
+  input: RelationshipInput,
+  onUpdate: ReferentialAction,
+  onDelete: ReferentialAction,
+): string {
+  const openingParenthesis = originalSql.indexOf("(");
+  const closingParenthesis = originalSql.lastIndexOf(")");
+
+  if (
+    openingParenthesis === -1 ||
+    closingParenthesis <= openingParenthesis
+  ) {
+    throw new Error(
+      `Table "${input.childTable}" cannot be rebuilt automatically.`,
+    );
+  }
+
+  const definitions = originalSql
+    .slice(
+      openingParenthesis + 1,
+      closingParenthesis,
+    )
+    .trim();
+
+  const suffix = originalSql
+    .slice(closingParenthesis + 1)
+    .trim()
+    .replace(/;$/, "")
+    .trim();
+
+  const constraintName = [
+    "fk",
+    identifierSlug(input.childTable),
+    identifierSlug(input.childColumn),
+    identifierSlug(input.parentTable),
+    identifierSlug(input.parentColumn),
+  ].join("_");
+
+  const constraint = [
+    `CONSTRAINT ${quoteIdentifier(constraintName)}`,
+    `FOREIGN KEY (${quoteIdentifier(input.childColumn)})`,
+    `REFERENCES ${quoteIdentifier(input.parentTable)}`,
+    `(${quoteIdentifier(input.parentColumn)})`,
+    `ON UPDATE ${onUpdate}`,
+    `ON DELETE ${onDelete}`,
+  ].join(" ");
+
+  return [
+    `CREATE TABLE ${quoteIdentifier(temporaryTableName)}`,
+    `(${definitions}, ${constraint})`,
+    suffix,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .concat(";");
+}
+
+async function createRelationship(
+  input: RelationshipInput,
+): Promise<CreateRelationshipResult> {
+  const validation = await validateRelationship(input);
+
+  if (!validation.valid) {
+    throw new Error(validation.problems.join(" "));
+  }
+
+  const database = await getDatabase();
+
+  const onUpdate = normalizeReferentialAction(
+    input.onUpdate,
+  );
+
+  const onDelete = normalizeReferentialAction(
+    input.onDelete,
+  );
+
+  const originalSqlRows = selectRows(
+    database,
+    `
+      SELECT sql
+      FROM sqlite_master
+      WHERE type = 'table'
+        AND name = ? COLLATE NOCASE
+      LIMIT 1;
+    `,
+    [input.childTable],
+  );
+
+  const originalSql = String(
+    originalSqlRows[0]?.[0] ?? "",
+  );
+
+  if (!originalSql) {
+    throw new Error(
+      `Could not read the schema of table "${input.childTable}".`,
+    );
+  }
+
+  const childColumns = getRelationshipTableColumns(
+    database,
+    input.childTable,
+  );
+
+  if (childColumns.length === 0) {
+    throw new Error(
+      `Table "${input.childTable}" has no columns.`,
+    );
+  }
+
+  const schemaObjectRows = selectRows(
+    database,
+    `
+      SELECT type, name, sql
+      FROM sqlite_master
+      WHERE tbl_name = ? COLLATE NOCASE
+        AND type IN ('index', 'trigger')
+        AND sql IS NOT NULL
+      ORDER BY type, name;
+    `,
+    [input.childTable],
+  );
+
+  const temporaryTableName =
+    `__sqltrain_relationship_${Date.now().toString(36)}`;
+
+  const columnList = childColumns
+    .map((column) => quoteIdentifier(column.name))
+    .join(", ");
+
+  database.exec("PRAGMA foreign_keys = OFF;");
+  database.exec(
+    `SAVEPOINT ${RELATIONSHIP_SAVEPOINT};`,
+  );
+
+  try {
+    ensureUniqueParentIndex(
+      database,
+      input.parentTable,
+      input.parentColumn,
+    );
+
+    database.exec(
+      buildRelationshipTableSql(
+        originalSql,
+        temporaryTableName,
+        input,
+        onUpdate,
+        onDelete,
+      ),
+    );
+
+    database.exec(
+      `
+        INSERT INTO ${quoteIdentifier(temporaryTableName)}
+          (${columnList})
+        SELECT ${columnList}
+        FROM ${quoteIdentifier(input.childTable)};
+      `,
+    );
+
+    const foreignKeyProblems = selectRows(
+      database,
+      `PRAGMA foreign_key_check(${quoteIdentifier(
+        temporaryTableName,
+      )});`,
+    );
+
+    if (foreignKeyProblems.length > 0) {
+      throw new Error(
+        "Foreign key validation failed while rebuilding the table.",
+      );
+    }
+
+    database.exec(
+      `
+        DROP TABLE ${quoteIdentifier(input.childTable)};
+        ALTER TABLE ${quoteIdentifier(temporaryTableName)}
+          RENAME TO ${quoteIdentifier(input.childTable)};
+      `,
+    );
+
+    for (const schemaObjectRow of schemaObjectRows) {
+      const schemaSql = String(
+        schemaObjectRow[2] ?? "",
+      );
+
+      if (schemaSql) {
+        database.exec(schemaSql);
+      }
+    }
+
+    database.exec(
+      `RELEASE SAVEPOINT ${RELATIONSHIP_SAVEPOINT};`,
+    );
+  } catch (error) {
+    try {
+      database.exec(
+        `ROLLBACK TO SAVEPOINT ${RELATIONSHIP_SAVEPOINT};`,
+      );
+
+      database.exec(
+        `RELEASE SAVEPOINT ${RELATIONSHIP_SAVEPOINT};`,
+      );
+    } finally {
+      database.exec("PRAGMA foreign_keys = ON;");
+    }
+
+    throw error;
+  }
+
+  database.exec("PRAGMA foreign_keys = ON;");
+
+  const relationship = listRelationshipsFromDatabase(
+    database,
+  ).find(
+    (candidate) =>
+      candidate.parentTable.toLowerCase() ===
+        input.parentTable.toLowerCase() &&
+      candidate.parentColumn.toLowerCase() ===
+        input.parentColumn.toLowerCase() &&
+      candidate.childTable.toLowerCase() ===
+        input.childTable.toLowerCase() &&
+      candidate.childColumn.toLowerCase() ===
+        input.childColumn.toLowerCase(),
+  );
+
+  if (!relationship) {
+    throw new Error(
+      "The relationship was created but could not be read back.",
+    );
+  }
+
+  return {
+    created: true,
+    relationship,
+    validation,
+  };
+}
+
 async function resetDatabase(): Promise<void> {
   const database = await getDatabase();
 
@@ -1049,6 +1739,27 @@ workerScope.addEventListener(
           postSuccess(
             request.id,
             await importData(request.input),
+          );
+          break;
+
+        case "listRelationships":
+          postSuccess(
+            request.id,
+            await listRelationships(),
+          );
+          break;
+
+        case "validateRelationship":
+          postSuccess(
+            request.id,
+            await validateRelationship(request.input),
+          );
+          break;
+
+        case "createRelationship":
+          postSuccess(
+            request.id,
+            await createRelationship(request.input),
           );
           break;
 
