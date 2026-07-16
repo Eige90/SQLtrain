@@ -24,6 +24,10 @@ import type {
 } from "../../types/import";
 
 import type {
+  LessonSandboxInput,
+} from "../../types/lesson";
+
+import type {
   ColumnAffinity,
   CreateRelationshipResult,
   DatabaseRelationship,
@@ -57,6 +61,11 @@ type WorkerRequest =
       id: string;
       type: "createRelationship";
       input: RelationshipInput;
+    }
+  | {
+      id: string;
+      type: "executeLessonSandbox";
+      input: LessonSandboxInput;
     }
   | { id: string; type: "reset" };
 
@@ -1610,6 +1619,49 @@ async function createRelationship(
   };
 }
 
+async function executeLessonSandbox(
+  input: LessonSandboxInput,
+): Promise<QueryResult> {
+  const startedAt = performance.now();
+  const sqlite3 = await sqlite3InitModule();
+
+  const database = new sqlite3.oo1.DB(
+    ":memory:",
+    "c",
+  );
+
+  try {
+    database.exec("PRAGMA foreign_keys = ON;");
+
+    if (input.setupSql.trim()) {
+      database.exec(input.setupSql);
+    }
+
+    if (input.sql.trim()) {
+      database.exec(input.sql);
+    }
+
+    const columns: string[] = [];
+
+    const rows = database.exec({
+      sql: input.verificationSql,
+      rowMode: "array",
+      columnNames: columns,
+      returnValue: "resultRows",
+    }) as SqlValue[][];
+
+    return {
+      columns,
+      rows: rows as DatabaseValue[][],
+      affectedRows: 0,
+      executionTimeMs:
+        performance.now() - startedAt,
+    };
+  } finally {
+    database.close();
+  }
+}
+
 async function resetDatabase(): Promise<void> {
   const database = await getDatabase();
 
@@ -1760,6 +1812,13 @@ workerScope.addEventListener(
           postSuccess(
             request.id,
             await createRelationship(request.input),
+          );
+          break;
+
+        case "executeLessonSandbox":
+          postSuccess(
+            request.id,
+            await executeLessonSandbox(request.input),
           );
           break;
 

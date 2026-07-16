@@ -13,6 +13,8 @@ import type {
   ImportResult,
 } from "@/types/import";
 
+import type { LessonSandboxInput } from "@/types/lesson";
+
 import type {
   CreateRelationshipResult,
   DatabaseRelationship,
@@ -46,6 +48,11 @@ type WorkerRequest =
       type: "createRelationship";
       input: RelationshipInput;
     }
+  | {
+      id: string;
+      type: "executeLessonSandbox";
+      input: LessonSandboxInput;
+    }
   | { id: string; type: "reset" };
 
 type WorkerRequestWithoutId =
@@ -70,6 +77,10 @@ type WorkerRequestWithoutId =
   | {
       type: "createRelationship";
       input: RelationshipInput;
+    }
+  | {
+      type: "executeLessonSandbox";
+      input: LessonSandboxInput;
     }
   | { type: "reset" };
 
@@ -227,6 +238,15 @@ class SqliteClient {
   ): Promise<CreateRelationshipResult> {
     return this.request({
       type: "createRelationship",
+      input,
+    });
+  }
+
+  executeLessonSandbox(
+    input: LessonSandboxInput,
+  ): Promise<QueryResult> {
+    return this.request({
+      type: "executeLessonSandbox",
       input,
     });
   }

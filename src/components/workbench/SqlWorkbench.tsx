@@ -5,14 +5,36 @@ import { ExternalLink, Play, RotateCcw, ShieldCheck, TrainFront } from "lucide-r
 
 import { DatabaseManagerDialog } from "@/components/database/DatabaseManagerDialog";
 import { DatabaseSidebar } from "@/components/database/DatabaseSidebar";
+import { ActiveLessonCard } from "@/components/lessons/ActiveLessonCard";
+import { BadgeUnlockedToast } from "@/components/lessons/BadgeUnlockedToast";
+import { BadgesDialog } from "@/components/lessons/BadgesDialog";
+import { LessonRewardsBar } from "@/components/lessons/LessonRewardsBar";
+import { LessonsDialog } from "@/components/lessons/LessonsDialog";
 import { SqlEditor } from "@/components/editor/SqlEditor";
 import { QueryResults } from "@/components/results/QueryResults";
+import { SQL_LESSONS, getSqlLesson } from "@/data/lessons";
+import {
+  readCompletedLessonIds,
+  writeCompletedLessonIds,
+} from "@/lib/lessons/lesson-progress";
+import {
+  getLessonRewardSummary,
+  getLessonXp,
+  readLessonStreak,
+  recordLessonCompletionDate,
+} from "@/lib/lessons/lesson-rewards";
+
+import type {
+  LessonBadge,
+} from "@/lib/lessons/lesson-rewards";
+import { validateSqlLesson } from "@/lib/lessons/validate-lesson";
 import { sqliteClient } from "@/lib/sqlite/sqlite-client";
 import type {
   DatabaseInitializationResult,
   DatabaseTableSummary,
   QueryResult,
 } from "@/types/database";
+import type { LessonValidationResult } from "@/types/lesson";
 
 const DEFAULT_SQL = "SELECT * FROM Customers;";
 
@@ -26,9 +48,42 @@ export function SqlWorkbench() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [isExecuting, setIsExecuting] = useState(false);
   const [isManagerOpen, setIsManagerOpen] = useState(false);
+  const [isLessonsOpen, setIsLessonsOpen] = useState(false);
+  const [activeLessonId, setActiveLessonId] =
+    useState<string | null>(null);
+  const [completedLessonIds, setCompletedLessonIds] =
+    useState<string[]>([]);
+  const [lessonFeedback, setLessonFeedback] =
+    useState<LessonValidationResult | null>(null);
+  const [isCheckingLesson, setIsCheckingLesson] =
+    useState(false);
+  const [lessonStreak, setLessonStreak] = useState(0);
+  const [lastRewardXp, setLastRewardXp] =
+    useState<number | null>(null);
+
+  const [isBadgesOpen, setIsBadgesOpen] =
+    useState(false);
+
+  const [unlockedBadge, setUnlockedBadge] =
+    useState<LessonBadge | null>(null);
+
+  const activeLesson = activeLessonId
+    ? getSqlLesson(activeLessonId)
+    : null;
 
   const refreshTables = useCallback(async () => {
     setTables(await sqliteClient.listTables());
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setCompletedLessonIds(readCompletedLessonIds());
+      setLessonStreak(readLessonStreak().streak);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, []);
 
   useEffect(() => {
@@ -130,11 +185,160 @@ export function SqlWorkbench() {
     setIsManagerOpen(false);
   }
 
+  function openLessons(): void {
+    setCompletedLessonIds(readCompletedLessonIds());
+    setIsLessonsOpen(true);
+  }
+
+  function startLesson(lessonId: string): void {
+    const lesson = getSqlLesson(lessonId);
+
+    if (!lesson) {
+      return;
+    }
+
+    setActiveLessonId(lesson.id);
+    setSql(lesson.starterSql);
+    setResult(null);
+    setError(null);
+    setLessonFeedback(null);
+    setLastRewardXp(null);
+    setIsLessonsOpen(false);
+  }
+
+  async function checkActiveLesson(): Promise<void> {
+    if (!activeLesson || isCheckingLesson) {
+      return;
+    }
+
+    setIsCheckingLesson(true);
+    setLessonFeedback(null);
+    setLastRewardXp(null);
+
+    try {
+      const validation = await validateSqlLesson(
+        activeLesson,
+        sql,
+      );
+
+      setLessonFeedback(validation);
+
+      if (validation.correct) {
+        const alreadyCompleted =
+          completedLessonIds.includes(activeLesson.id);
+
+        const nextCompletedLessonIds = [
+          ...new Set([
+            ...completedLessonIds,
+            activeLesson.id,
+          ]),
+        ];
+
+        setCompletedLessonIds(nextCompletedLessonIds);
+        writeCompletedLessonIds(nextCompletedLessonIds);
+
+        if (!alreadyCompleted) {
+          const previousBadges =
+            getLessonRewardSummary(
+              completedLessonIds,
+            ).badges;
+
+          const nextBadges =
+            getLessonRewardSummary(
+              nextCompletedLessonIds,
+            ).badges;
+
+          const newlyUnlockedBadge =
+            nextBadges.find(
+              (badge) =>
+                !previousBadges.some(
+                  (previousBadge) =>
+                    previousBadge.id === badge.id,
+                ),
+            ) ?? null;
+
+          setLastRewardXp(
+            getLessonXp(activeLesson.difficulty),
+          );
+
+          setLessonStreak(
+            recordLessonCompletionDate(),
+          );
+
+          if (newlyUnlockedBadge) {
+            setUnlockedBadge(
+              newlyUnlockedBadge,
+            );
+          }
+        }
+      }
+    } finally {
+      setIsCheckingLesson(false);
+    }
+  }
+
+  function showActiveLessonSolution(): void {
+    if (!activeLesson) {
+      return;
+    }
+
+    setSql(activeLesson.solutionSql);
+    setLessonFeedback({
+      correct: false,
+      message:
+        "The solution has been loaded into the editor. Run it and study how it works.",
+    });
+  }
+
+  function startNextLesson(): void {
+    if (!activeLesson) {
+      return;
+    }
+
+    const currentIndex = SQL_LESSONS.findIndex(
+      (lesson) => lesson.id === activeLesson.id,
+    );
+
+    const nextLesson = SQL_LESSONS[currentIndex + 1];
+
+    if (nextLesson) {
+      startLesson(nextLesson.id);
+    }
+  }
+
+  function returnHome(): void {
+    setActiveLessonId(null);
+    setLessonFeedback(null);
+    setLastRewardXp(null);
+    setIsLessonsOpen(false);
+    setIsManagerOpen(false);
+    setSql(DEFAULT_SQL);
+    setResult(null);
+    setError(null);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  function exitLesson(): void {
+    setActiveLessonId(null);
+    setLessonFeedback(null);
+    setLastRewardXp(null);
+  }
+
   return (
     <main className="min-h-screen bg-transparent">
       <header className="border-b border-sky-400/20 bg-[linear-gradient(135deg,#07111f_0%,#0b1b33_55%,#312e81_100%)] text-white shadow-xl shadow-slate-950/20">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-6">
-          <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={returnHome}
+            aria-label="Return to SQLTrain home"
+            title="Return to SQLTrain home"
+            className="flex items-center gap-4 rounded-2xl text-left transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-sky-300"
+          >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-400/15 ring-1 ring-sky-300/30">
               <TrainFront
                 size={28}
@@ -156,9 +360,17 @@ export function SqlWorkbench() {
                 Practice SQL safely with your own data.
               </p>
             </div>
-          </div>
+          </button>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={openLessons}
+              className="rounded-full bg-sky-400 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-sky-300"
+            >
+              Lessons · {completedLessonIds.length}/{SQL_LESSONS.length}
+            </button>
+
             <span className="flex items-center gap-2 rounded-full bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 ring-1 ring-emerald-300/20">
               <ShieldCheck size={14} aria-hidden="true" />
               Local and private
@@ -173,6 +385,14 @@ export function SqlWorkbench() {
         </div>
       </header>
 
+      <LessonRewardsBar
+        completedLessonIds={completedLessonIds}
+        streak={lessonStreak}
+        onOpenBadges={() =>
+          setIsBadgesOpen(true)
+        }
+      />
+
       {storageInfo?.warning && (
         <div className="mx-auto mt-4 max-w-[1600px] px-4 sm:px-6">
           <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -183,6 +403,30 @@ export function SqlWorkbench() {
 
       <div className="mx-auto grid max-w-[1600px] gap-5 p-4 sm:p-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="space-y-5">
+          {activeLesson && (
+            <ActiveLessonCard
+              lesson={activeLesson}
+              feedback={lessonFeedback}
+              isChecking={isCheckingLesson}
+              isCompleted={completedLessonIds.includes(
+                activeLesson.id,
+              )}
+              onCheck={() => void checkActiveLesson()}
+              onShowSolution={showActiveLessonSolution}
+              rewardXp={lastRewardXp}
+              hasNextLesson={
+                SQL_LESSONS.findIndex(
+                  (lesson) =>
+                    lesson.id === activeLesson.id,
+                ) <
+                SQL_LESSONS.length - 1
+              }
+              onNextLesson={startNextLesson}
+              onOpenLessons={openLessons}
+              onExit={exitLesson}
+            />
+          )}
+
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
               <div>
@@ -250,6 +494,35 @@ export function SqlWorkbench() {
           </a>
         </div>
       </footer>
+
+      <BadgeUnlockedToast
+        badge={unlockedBadge}
+        onClose={() =>
+          setUnlockedBadge(null)
+        }
+        onOpenBadges={() => {
+          setUnlockedBadge(null);
+          setIsBadgesOpen(true);
+        }}
+      />
+
+      <BadgesDialog
+        isOpen={isBadgesOpen}
+        completedLessonIds={
+          completedLessonIds
+        }
+        onClose={() =>
+          setIsBadgesOpen(false)
+        }
+      />
+
+      <LessonsDialog
+        isOpen={isLessonsOpen}
+        lessons={SQL_LESSONS}
+        completedLessonIds={completedLessonIds}
+        onClose={() => setIsLessonsOpen(false)}
+        onStartLesson={startLesson}
+      />
 
       <DatabaseManagerDialog
         isOpen={isManagerOpen}
