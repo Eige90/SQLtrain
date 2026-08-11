@@ -6,7 +6,10 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:page": "playwright test tests/e2e",
+    "test:page:headed": "playwright test tests/e2e --headed",
+    "test:all": "npm run lint && npm run build && python3 tools/verify-mystery-final.py && npm run test:page"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -18,6 +21,7 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

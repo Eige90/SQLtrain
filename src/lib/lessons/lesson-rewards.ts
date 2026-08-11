@@ -2,7 +2,6 @@ import { SQL_LESSONS } from "@/data/lessons";
 
 import type {
   LessonDifficulty,
-  SqlLesson,
 } from "@/types/lesson";
 
 const STREAK_STORAGE_KEY =
@@ -33,6 +32,8 @@ export type LessonRewardSummary = {
   xpInsideLevel: number;
   xpRequiredForLevel: number;
   levelProgressPercent: number;
+  completedLessonCount: number;
+  courseComplete: boolean;
   badges: LessonBadge[];
 };
 
@@ -460,42 +461,107 @@ export function getAllLessonBadges(
 export function getLessonRewardSummary(
   completedLessonIds: string[],
 ): LessonRewardSummary {
-  const completedLessons: SqlLesson[] =
-    SQL_LESSONS.filter((lesson) =>
-      completedLessonIds.includes(lesson.id),
+  const validLessonIds =
+    new Set(
+      SQL_LESSONS.map(
+        (lesson) => lesson.id,
+      ),
     );
 
-  const totalXp = completedLessons.reduce(
-    (sum, lesson) =>
-      sum +
-      getLessonXp(lesson.difficulty),
-    0,
-  );
+  const normalizedCompletedIds = [
+    ...new Set(
+      completedLessonIds.filter(
+        (lessonId) =>
+          validLessonIds.has(
+            lessonId,
+          ),
+      ),
+    ),
+  ];
+
+  const completedIdSet =
+    new Set(
+      normalizedCompletedIds,
+    );
+
+  const completedLessons =
+    SQL_LESSONS.filter(
+      (lesson) =>
+        completedIdSet.has(
+          lesson.id,
+        ),
+    );
+
+  const completedLessonCount =
+    completedLessons.length;
+
+  const courseComplete =
+    completedLessonCount ===
+    SQL_LESSONS.length;
+
+  const totalXp =
+    completedLessons.reduce(
+      (sum, lesson) =>
+        sum +
+        getLessonXp(
+          lesson.difficulty,
+        ),
+      0,
+    );
 
   const level =
-    Math.floor(totalXp / XP_PER_LEVEL) + 1;
+    Math.floor(
+      totalXp / XP_PER_LEVEL,
+    ) + 1;
 
-  const xpInsideLevel =
+  const rawXpInsideLevel =
     totalXp % XP_PER_LEVEL;
 
-  const badges = getAllLessonBadges(
-    completedLessonIds,
-  )
-    .filter((badge) => badge.earned)
-    .map((badge) => ({
-      id: badge.id,
-      title: badge.title,
-      description: badge.description,
-      icon: badge.icon,
-    }));
+  const xpInsideLevel =
+    courseComplete
+      ? XP_PER_LEVEL
+      : rawXpInsideLevel;
+
+  const levelProgressPercent =
+    courseComplete
+      ? 100
+      : Math.round(
+          (
+            rawXpInsideLevel /
+            XP_PER_LEVEL
+          ) * 100,
+        );
+
+  const badges =
+    BADGE_DEFINITIONS
+      .filter(
+        (definition) =>
+          definition.isEarned(
+            normalizedCompletedIds,
+          ),
+      )
+      .map(
+        (definition) => ({
+          id:
+            definition.id,
+          title:
+            definition.title,
+          description:
+            definition.description,
+          icon:
+            definition.icon,
+        }),
+      );
 
   return {
     totalXp,
     level,
     xpInsideLevel,
-    xpRequiredForLevel: XP_PER_LEVEL,
-    levelProgressPercent:
-      (xpInsideLevel / XP_PER_LEVEL) * 100,
+    xpRequiredForLevel:
+      XP_PER_LEVEL,
+    levelProgressPercent,
+    completedLessonCount,
+    courseComplete,
     badges,
   };
 }

@@ -1,9 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 import { ExternalLink, Play, RotateCcw, ShieldCheck, TrainFront } from "lucide-react";
 
 import { DatabaseManagerDialog } from "@/components/database/DatabaseManagerDialog";
+import { MysteryCampaignDialog } from "@/components/mystery/MysteryCampaignDialog";
+import { MysteryTeaserDialog } from "@/components/mystery/MysteryTeaserDialog";
 import { DatabaseSidebar } from "@/components/database/DatabaseSidebar";
 import { ActiveLessonCard } from "@/components/lessons/ActiveLessonCard";
 import { BadgeUnlockedToast } from "@/components/lessons/BadgeUnlockedToast";
@@ -15,7 +23,10 @@ import { SqlEditor } from "@/components/editor/SqlEditor";
 import { QueryResults } from "@/components/results/QueryResults";
 import { SQL_LESSONS, getSqlLesson } from "@/data/lessons";
 import {
-  readCompletedLessonIds,
+  getLessonProgressServerSnapshot,
+  parseCompletedLessonIdsSnapshot,
+  readLessonProgressSnapshot,
+  subscribeToLessonProgress,
   writeCompletedLessonIds,
 } from "@/lib/lessons/lesson-progress";
 import {
@@ -29,6 +40,10 @@ import type {
   LessonBadge,
 } from "@/lib/lessons/lesson-rewards";
 import { validateSqlLesson } from "@/lib/lessons/validate-lesson";
+import {
+  hasSeenMysteryTeaser,
+  markMysteryTeaserSeen,
+} from "@/lib/mystery/mystery-teaser";
 import { sqliteClient } from "@/lib/sqlite/sqlite-client";
 import type {
   DatabaseInitializationResult,
@@ -49,11 +64,34 @@ export function SqlWorkbench() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [isExecuting, setIsExecuting] = useState(false);
   const [isManagerOpen, setIsManagerOpen] = useState(false);
+  const [
+    isMysteryTeaserOpen,
+    setIsMysteryTeaserOpen,
+  ] = useState(false);
+  const [
+    isMysteryOpen,
+    setIsMysteryOpen,
+  ] = useState(false);
   const [isLessonsOpen, setIsLessonsOpen] = useState(false);
   const [activeLessonId, setActiveLessonId] =
     useState<string | null>(null);
-  const [completedLessonIds, setCompletedLessonIds] =
-    useState<string[]>([]);
+  const lessonProgressSnapshot =
+    useSyncExternalStore(
+      subscribeToLessonProgress,
+      readLessonProgressSnapshot,
+      getLessonProgressServerSnapshot,
+    );
+
+  const completedLessonIds =
+    useMemo(
+      () =>
+        parseCompletedLessonIdsSnapshot(
+          lessonProgressSnapshot,
+        ),
+      [
+        lessonProgressSnapshot,
+      ],
+    );
   const [lessonFeedback, setLessonFeedback] =
     useState<LessonValidationResult | null>(null);
   const [isCheckingLesson, setIsCheckingLesson] =
@@ -77,18 +115,41 @@ export function SqlWorkbench() {
     ? getSqlLesson(activeLessonId)
     : null;
 
+  const lessonRewardSummary =
+    getLessonRewardSummary(
+      completedLessonIds,
+    );
+
+  const lessonTen = SQL_LESSONS.find(
+    (lesson) => lesson.number === 10,
+  );
+
+  const mysteryUnlocked = Boolean(
+    lessonTen &&
+      completedLessonIds.includes(
+        lessonTen.id,
+      ),
+  );
+
   const refreshTables = useCallback(async () => {
     setTables(await sqliteClient.listTables());
   }, []);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setCompletedLessonIds(readCompletedLessonIds());
-      setLessonStreak(readLessonStreak().streak);
-    }, 0);
+    const timeoutId =
+      window.setTimeout(
+        () => {
+          setLessonStreak(
+            readLessonStreak().streak,
+          );
+        },
+        0,
+      );
 
     return () => {
-      window.clearTimeout(timeoutId);
+      window.clearTimeout(
+        timeoutId,
+      );
     };
   }, []);
 
@@ -128,6 +189,32 @@ export function SqlWorkbench() {
       isActive = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      !lessonTen ||
+      !completedLessonIds.includes(
+        lessonTen.id,
+      ) ||
+      hasSeenMysteryTeaser()
+    ) {
+      return;
+    }
+
+    const showMysteryTeaser =
+      window.setTimeout(() => {
+        setIsMysteryTeaserOpen(true);
+      }, 500);
+
+    return () => {
+      window.clearTimeout(
+        showMysteryTeaser,
+      );
+    };
+  }, [
+    completedLessonIds,
+    lessonTen,
+  ]);
 
   async function executeSql(sqlToExecute = sql) {
     if (!sqlToExecute.trim() || isInitializing || isExecuting) {
@@ -192,7 +279,6 @@ export function SqlWorkbench() {
   }
 
   function openLessons(): void {
-    setCompletedLessonIds(readCompletedLessonIds());
     setIsLessonsOpen(true);
   }
 
@@ -240,8 +326,9 @@ export function SqlWorkbench() {
           ]),
         ];
 
-        setCompletedLessonIds(nextCompletedLessonIds);
-        writeCompletedLessonIds(nextCompletedLessonIds);
+        writeCompletedLessonIds(
+          nextCompletedLessonIds,
+        );
 
         if (!alreadyCompleted) {
           const previousBadges =
@@ -272,8 +359,12 @@ export function SqlWorkbench() {
           );
 
           const completedAllLessons =
-            nextCompletedLessonIds.length ===
-            SQL_LESSONS.length;
+            SQL_LESSONS.every(
+              (lesson) =>
+                nextCompletedLessonIds.includes(
+                  lesson.id,
+                ),
+            );
 
           if (completedAllLessons) {
             setUnlockedBadge(null);
@@ -317,6 +408,21 @@ export function SqlWorkbench() {
     if (nextLesson) {
       startLesson(nextLesson.id);
     }
+  }
+
+  function startMystery(): void {
+    if (!mysteryUnlocked) {
+      return;
+    }
+
+    markMysteryTeaserSeen();
+    setIsMysteryTeaserOpen(false);
+    setIsMysteryOpen(true);
+  }
+
+  function closeMysteryTeaser(): void {
+    markMysteryTeaserSeen();
+    setIsMysteryTeaserOpen(false);
   }
 
   function returnHome(): void {
@@ -382,7 +488,23 @@ export function SqlWorkbench() {
               onClick={openLessons}
               className="rounded-full bg-sky-400 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-sky-300"
             >
-              Lessons · {completedLessonIds.length}/{SQL_LESSONS.length}
+              Lessons · {lessonRewardSummary.completedLessonCount}/{SQL_LESSONS.length}
+            </button>
+
+            <button
+              type="button"
+              onClick={startMystery}
+              disabled={!mysteryUnlocked}
+              title={
+                mysteryUnlocked
+                  ? "Open SQL Murder Mystery"
+                  : "Complete normal Lesson 10 to unlock"
+              }
+              className="rounded-full bg-red-500/15 px-4 py-2 text-sm font-bold text-red-200 ring-1 ring-red-300/20 transition hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {mysteryUnlocked
+                ? "🔎 Murder Mystery"
+                : "🔒 Mystery · Lesson 10"}
             </button>
 
             <span className="flex items-center gap-2 rounded-full bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 ring-1 ring-emerald-300/20">
@@ -508,6 +630,19 @@ export function SqlWorkbench() {
           </a>
         </div>
       </footer>
+
+      <MysteryCampaignDialog
+        isOpen={isMysteryOpen}
+        onClose={() =>
+          setIsMysteryOpen(false)
+        }
+      />
+
+      <MysteryTeaserDialog
+        isOpen={isMysteryTeaserOpen}
+        onClose={closeMysteryTeaser}
+        onStart={startMystery}
+      />
 
       <SqlProCelebrationDialog
         isOpen={isSqlProCelebrationOpen}

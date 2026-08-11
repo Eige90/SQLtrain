@@ -13,9 +13,10 @@ export function LessonRewardsBar({
   streak,
   onOpenBadges,
 }: LessonRewardsBarProps) {
-  const summary = getLessonRewardSummary(
-    completedLessonIds,
-  );
+  const summary =
+    getLessonRewardSummary(
+      completedLessonIds,
+    );
 
   return (
     <section className="border-b border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur sm:px-6">
@@ -25,12 +26,16 @@ export function LessonRewardsBar({
             className="text-3xl"
             aria-hidden="true"
           >
-            ⭐
+            {summary.courseComplete
+              ? "👑"
+              : "⭐"}
           </span>
 
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Level {summary.level}
+              {summary.courseComplete
+                ? "SQL PRO"
+                : `Level ${summary.level}`}
             </p>
 
             <p className="font-black text-slate-900">
@@ -42,15 +47,29 @@ export function LessonRewardsBar({
         <div className="min-w-[180px] flex-1">
           <div className="mb-1 flex justify-between text-xs font-semibold text-slate-500">
             <span>
-              {summary.xpInsideLevel} XP
+              {summary.courseComplete
+                ? "COURSE COMPLETE"
+                : `${summary.xpInsideLevel} XP`}
             </span>
 
             <span>
-              {summary.xpRequiredForLevel} XP
+              {summary.courseComplete
+                ? "100%"
+                : `${summary.xpRequiredForLevel} XP`}
             </span>
           </div>
 
-          <div className="h-2.5 overflow-hidden rounded-full bg-slate-200">
+          <div
+            role="progressbar"
+            aria-label="Lesson XP progress"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={
+              summary.levelProgressPercent
+            }
+            data-testid="lesson-xp-progress"
+            className="h-2.5 overflow-hidden rounded-full bg-slate-200"
+          >
             <div
               className="h-full rounded-full bg-[linear-gradient(90deg,#22c55e,#38bdf8,#6366f1)] transition-all duration-700"
               style={{
@@ -67,7 +86,9 @@ export function LessonRewardsBar({
 
         <button
           type="button"
-          onClick={onOpenBadges}
+          onClick={
+            onOpenBadges
+          }
           className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-800 transition hover:border-violet-400 hover:bg-violet-100 focus:outline-none focus:ring-2 focus:ring-violet-400"
         >
           🏅 {summary.badges.length} badges

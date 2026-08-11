@@ -35,6 +35,14 @@ export function LessonsDialog({
     lessons[0] ??
     null;
 
+  const completedLessonCount =
+    lessons.filter(
+      (lesson) =>
+        completedLessonIds.includes(
+          lesson.id,
+        ),
+    ).length;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-4"
@@ -62,7 +70,7 @@ export function LessonsDialog({
             </h2>
 
             <p className="mt-2 text-sm text-slate-600">
-              {completedLessonIds.length} of {lessons.length}{" "}
+              {completedLessonCount} of {lessons.length}{" "}
               completed
             </p>
           </div>
