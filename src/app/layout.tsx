@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import "./globals.css";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: {
@@ -34,7 +35,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>{children}        {/* Cloudflare Web Analytics */}
+        <Script
+          id="cloudflare-web-analytics"
+          type="module"
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          strategy="afterInteractive"
+          data-cf-beacon='{"token":"1d4678fe95294c688ea7a2d36cd21708"}'
+        />
+      </body>
     </html>
   );
 }
