@@ -1554,7 +1554,7 @@ export const SQL_LESSONS: SqlLesson[] = [
     ],
     "resultOrderMatters": false,
     "executionMode": "sandbox",
-    "setupSql": "CREATE TABLE NotesTrigger (\n  NoteID INTEGER PRIMARY KEY,\n  NoteText TEXT\n);\n\nCREATE TABLE NotesAudit (\n  AuditID INTEGER PRIMARY KEY\n);\n\nCREATE TRIGGER trg_notes_insert\nAFTER INSERT ON NotesTrigger\nBEGIN\n  INSERT INTO NotesAudit DEFAULT VALUES;\nEND;",
+    "setupSql": "CREATE TABLE NotesTrigger (\n  NoteID INTEGER PRIMARY KEY,\n  NoteText TEXT\n);\n\nCREATE TABLE NotesAudit (\n  AuditID INTEGER PRIMARY KEY\n);\n\nCREATE TRIGGER trg_notes_insert\nAFTER INSERT ON NotesTrigger\nBEGIN\n  INSERT INTO NotesAudit (\n    AuditID\n  )\n  VALUES (NULL);\nEND;",
     "verificationSql": "SELECT\n  COUNT(*) AS RemainingTriggers\nFROM sqlite_master\nWHERE type = 'trigger'\n  AND name = 'trg_notes_insert';"
   },
   {
