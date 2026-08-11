@@ -1355,6 +1355,493 @@ export const SQL_LESSONS: SqlLesson[] = [
     "setupSql": "CREATE TABLE Accounts (\n  AccountID INTEGER PRIMARY KEY,\n  AccountName TEXT NOT NULL,\n  Balance REAL NOT NULL\n);\n\nINSERT INTO Accounts (\n  AccountID,\n  AccountName,\n  Balance\n)\nVALUES\n  (1, 'Main Account', 1000),\n  (2, 'Savings Account', 500);",
     "verificationSql": "SELECT\n  AccountID,\n  AccountName,\n  Balance\nFROM Accounts\nORDER BY AccountID;"
   }
+,
+
+  {
+    "id": "composite-primary-key",
+    "number": 76,
+    "title": "Create a Composite Primary Key",
+    "topic": "PRIMARY KEY",
+    "difficulty": "Advanced",
+    "description": "A composite primary key uniquely identifies a row using more than one column.",
+    "task": "Create CourseEnrollments with StudentID INTEGER, CourseID INTEGER, and a composite primary key containing both columns.",
+    "starterSql": "",
+    "solutionSql": "CREATE TABLE CourseEnrollments (\n  StudentID INTEGER,\n  CourseID INTEGER,\n  PRIMARY KEY (\n    StudentID,\n    CourseID\n  )\n);",
+    "hints": [
+      "Define both columns first.",
+      "Add PRIMARY KEY as a table constraint.",
+      "The order is StudentID, CourseID."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "SELECT 1;",
+    "verificationSql": "SELECT\n  name AS ColumnName,\n  type AS DeclaredType,\n  pk AS PrimaryKeyOrder\nFROM pragma_table_info('CourseEnrollments')\nORDER BY cid;"
+  },
+  {
+    "id": "composite-foreign-key",
+    "number": 77,
+    "title": "Create a Composite Foreign Key",
+    "topic": "FOREIGN KEY",
+    "difficulty": "Advanced",
+    "description": "A composite foreign key references a parent key made from several columns.",
+    "task": "Create RegistrationLines with StudentID, CourseID, and EditionYear. CourseID and EditionYear must reference the matching composite key in CourseEditions.",
+    "starterSql": "",
+    "solutionSql": "CREATE TABLE RegistrationLines (\n  StudentID INTEGER,\n  CourseID INTEGER,\n  EditionYear INTEGER,\n  FOREIGN KEY (\n    CourseID,\n    EditionYear\n  )\n  REFERENCES CourseEditions (\n    CourseID,\n    EditionYear\n  )\n);",
+    "hints": [
+      "The parent table already exists.",
+      "Both foreign-key columns belong inside one constraint.",
+      "Column order must match the parent key."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE CourseEditions (\n  CourseID INTEGER,\n  EditionYear INTEGER,\n  CourseName TEXT,\n  PRIMARY KEY (\n    CourseID,\n    EditionYear\n  )\n);",
+    "verificationSql": "SELECT\n  seq AS Sequence,\n  \"from\" AS ChildColumn,\n  \"table\" AS ParentTable,\n  \"to\" AS ParentColumn\nFROM pragma_foreign_key_list(\n  'RegistrationLines'\n)\nORDER BY id, seq;"
+  },
+  {
+    "id": "on-delete-cascade",
+    "number": 78,
+    "title": "Delete Related Rows Automatically",
+    "topic": "ON DELETE CASCADE",
+    "difficulty": "Advanced",
+    "description": "ON DELETE CASCADE removes child rows when their parent row is deleted.",
+    "task": "Create TeamMembers with TeamID referencing Teams.TeamID using ON DELETE CASCADE. Add two members to Team 1, one member to Team 2, and then delete Team 1.",
+    "starterSql": "",
+    "solutionSql": "CREATE TABLE TeamMembers (\n  MemberID INTEGER PRIMARY KEY,\n  MemberName TEXT NOT NULL,\n  TeamID INTEGER NOT NULL,\n  FOREIGN KEY (TeamID)\n    REFERENCES Teams(TeamID)\n    ON DELETE CASCADE\n);\n\nINSERT INTO TeamMembers (\n  MemberID,\n  MemberName,\n  TeamID\n)\nVALUES\n  (1, 'Anna', 1),\n  (2, 'Ben', 1),\n  (3, 'Carla', 2);\n\nDELETE FROM Teams\nWHERE TeamID = 1;",
+    "hints": [
+      "Place ON DELETE CASCADE after REFERENCES.",
+      "Insert the child rows before deleting the parent.",
+      "Only the member of Team 2 should remain."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE Teams (\n  TeamID INTEGER PRIMARY KEY,\n  TeamName TEXT NOT NULL\n);\n\nINSERT INTO Teams (\n  TeamID,\n  TeamName\n)\nVALUES\n  (1, 'Blue Team'),\n  (2, 'Green Team');",
+    "verificationSql": "SELECT\n  members.MemberID,\n  members.MemberName,\n  members.TeamID,\n  (\n    SELECT COUNT(*)\n    FROM pragma_foreign_key_list(\n      'TeamMembers'\n    )\n    WHERE on_delete = 'CASCADE'\n  ) AS CascadeRule\nFROM TeamMembers AS members\nORDER BY members.MemberID;"
+  },
+  {
+    "id": "on-update-cascade",
+    "number": 79,
+    "title": "Update Related Keys Automatically",
+    "topic": "ON UPDATE CASCADE",
+    "difficulty": "Advanced",
+    "description": "ON UPDATE CASCADE propagates a changed parent key to child rows.",
+    "task": "Create EmployeesRef whose DepartmentCode references DepartmentsRef.DepartmentCode using ON UPDATE CASCADE. Add one employee in IT and then change the department code from IT to TECH.",
+    "starterSql": "",
+    "solutionSql": "CREATE TABLE EmployeesRef (\n  EmployeeID INTEGER PRIMARY KEY,\n  EmployeeName TEXT NOT NULL,\n  DepartmentCode TEXT,\n  FOREIGN KEY (DepartmentCode)\n    REFERENCES DepartmentsRef(\n      DepartmentCode\n    )\n    ON UPDATE CASCADE\n);\n\nINSERT INTO EmployeesRef (\n  EmployeeID,\n  EmployeeName,\n  DepartmentCode\n)\nVALUES (\n  1,\n  'Daniel',\n  'IT'\n);\n\nUPDATE DepartmentsRef\nSET DepartmentCode = 'TECH'\nWHERE DepartmentCode = 'IT';",
+    "hints": [
+      "Use ON UPDATE CASCADE.",
+      "Insert the child row before changing the parent key.",
+      "The employee must end with DepartmentCode TECH."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE DepartmentsRef (\n  DepartmentCode TEXT PRIMARY KEY,\n  DepartmentName TEXT NOT NULL\n);\n\nINSERT INTO DepartmentsRef (\n  DepartmentCode,\n  DepartmentName\n)\nVALUES (\n  'IT',\n  'Information Technology'\n);",
+    "verificationSql": "SELECT\n  employees.EmployeeID,\n  employees.EmployeeName,\n  employees.DepartmentCode,\n  (\n    SELECT COUNT(*)\n    FROM pragma_foreign_key_list(\n      'EmployeesRef'\n    )\n    WHERE on_update = 'CASCADE'\n  ) AS CascadeRule\nFROM EmployeesRef AS employees\nORDER BY employees.EmployeeID;"
+  },
+  {
+    "id": "on-delete-set-null",
+    "number": 80,
+    "title": "Keep Children with SET NULL",
+    "topic": "ON DELETE SET NULL",
+    "difficulty": "Advanced",
+    "description": "ON DELETE SET NULL preserves child rows but clears their foreign-key value.",
+    "task": "Create ProjectTasks with ProjectID referencing ProjectsRef.ProjectID using ON DELETE SET NULL. Add a task for Project 1 and then delete Project 1.",
+    "starterSql": "",
+    "solutionSql": "CREATE TABLE ProjectTasks (\n  TaskID INTEGER PRIMARY KEY,\n  TaskName TEXT NOT NULL,\n  ProjectID INTEGER,\n  FOREIGN KEY (ProjectID)\n    REFERENCES ProjectsRef(ProjectID)\n    ON DELETE SET NULL\n);\n\nINSERT INTO ProjectTasks (\n  TaskID,\n  TaskName,\n  ProjectID\n)\nVALUES (\n  1,\n  'Prepare report',\n  1\n);\n\nDELETE FROM ProjectsRef\nWHERE ProjectID = 1;",
+    "hints": [
+      "ProjectID in the child table must allow NULL.",
+      "Use ON DELETE SET NULL.",
+      "The task should remain after deleting the project."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE ProjectsRef (\n  ProjectID INTEGER PRIMARY KEY,\n  ProjectName TEXT NOT NULL\n);\n\nINSERT INTO ProjectsRef (\n  ProjectID,\n  ProjectName\n)\nVALUES (\n  1,\n  'SQLTrain'\n);",
+    "verificationSql": "SELECT\n  tasks.TaskID,\n  tasks.TaskName,\n  tasks.ProjectID,\n  (\n    SELECT COUNT(*)\n    FROM pragma_foreign_key_list(\n      'ProjectTasks'\n    )\n    WHERE on_delete = 'SET NULL'\n  ) AS SetNullRule\nFROM ProjectTasks AS tasks\nORDER BY tasks.TaskID;"
+  },
+  {
+    "id": "drop-index",
+    "number": 81,
+    "title": "Remove an Index",
+    "topic": "DROP INDEX",
+    "difficulty": "Intermediate",
+    "description": "DROP INDEX removes an index without deleting its table.",
+    "task": "Remove the index named idx_logs_level.",
+    "starterSql": "",
+    "solutionSql": "DROP INDEX idx_logs_level;",
+    "hints": [
+      "Use DROP INDEX.",
+      "Do not drop the Logs table.",
+      "The index name is idx_logs_level."
+    ],
+    "resultOrderMatters": false,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE Logs (\n  LogID INTEGER PRIMARY KEY,\n  LogLevel TEXT,\n  Message TEXT\n);\n\nCREATE INDEX idx_logs_level\nON Logs(LogLevel);",
+    "verificationSql": "SELECT\n  COUNT(*) AS RemainingIndexes\nFROM sqlite_master\nWHERE type = 'index'\n  AND name = 'idx_logs_level';"
+  },
+  {
+    "id": "drop-view",
+    "number": 82,
+    "title": "Remove a View",
+    "topic": "DROP VIEW",
+    "difficulty": "Intermediate",
+    "description": "DROP VIEW removes a stored query without deleting its underlying table.",
+    "task": "Remove the view named ActiveUsers.",
+    "starterSql": "",
+    "solutionSql": "DROP VIEW ActiveUsers;",
+    "hints": [
+      "Use DROP VIEW.",
+      "Do not drop UsersViewSource.",
+      "Only the stored view should disappear."
+    ],
+    "resultOrderMatters": false,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE UsersViewSource (\n  UserID INTEGER PRIMARY KEY,\n  UserName TEXT,\n  IsActive INTEGER\n);\n\nCREATE VIEW ActiveUsers AS\nSELECT\n  UserID,\n  UserName\nFROM UsersViewSource\nWHERE IsActive = 1;",
+    "verificationSql": "SELECT\n  COUNT(*) AS RemainingViews\nFROM sqlite_master\nWHERE type = 'view'\n  AND name = 'ActiveUsers';"
+  },
+  {
+    "id": "after-insert-trigger",
+    "number": 83,
+    "title": "Audit Inserts with a Trigger",
+    "topic": "CREATE TRIGGER",
+    "difficulty": "Advanced",
+    "description": "An AFTER INSERT trigger can automatically create an audit entry.",
+    "task": "Create trg_orders_insert. After an insert into OrdersTrigger, add the new OrderID and the text Created to OrderAudit. Then insert OrderID 10 for Customer Alpha.",
+    "starterSql": "",
+    "solutionSql": "CREATE TRIGGER trg_orders_insert\nAFTER INSERT ON OrdersTrigger\nBEGIN\n  INSERT INTO OrderAudit (\n    OrderID,\n    ActionName\n  )\n  VALUES (\n    NEW.OrderID,\n    'Created'\n  );\nEND;\n\nINSERT INTO OrdersTrigger (\n  OrderID,\n  CustomerName\n)\nVALUES (\n  10,\n  'Alpha'\n);",
+    "hints": [
+      "Use NEW.OrderID inside the trigger.",
+      "The trigger runs AFTER INSERT.",
+      "Insert the test order after creating the trigger."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE OrdersTrigger (\n  OrderID INTEGER PRIMARY KEY,\n  CustomerName TEXT NOT NULL\n);\n\nCREATE TABLE OrderAudit (\n  AuditID INTEGER PRIMARY KEY AUTOINCREMENT,\n  OrderID INTEGER,\n  ActionName TEXT\n);",
+    "verificationSql": "SELECT\n  audit.OrderID,\n  audit.ActionName,\n  (\n    SELECT COUNT(*)\n    FROM sqlite_master\n    WHERE type = 'trigger'\n      AND name = 'trg_orders_insert'\n  ) AS TriggerExists\nFROM OrderAudit AS audit\nORDER BY audit.AuditID;"
+  },
+  {
+    "id": "after-update-trigger",
+    "number": 84,
+    "title": "Audit Updates with OLD and NEW",
+    "topic": "UPDATE TRIGGER",
+    "difficulty": "Advanced",
+    "description": "Triggers can access values before and after an update through OLD and NEW.",
+    "task": "Create trg_product_price_update. After Price changes, add ProductID, old Price, and new Price to ProductPriceAudit. Then change ProductID 1 from 20 to 25.",
+    "starterSql": "",
+    "solutionSql": "CREATE TRIGGER trg_product_price_update\nAFTER UPDATE OF Price\nON ProductsTrigger\nBEGIN\n  INSERT INTO ProductPriceAudit (\n    ProductID,\n    OldPrice,\n    NewPrice\n  )\n  VALUES (\n    NEW.ProductID,\n    OLD.Price,\n    NEW.Price\n  );\nEND;\n\nUPDATE ProductsTrigger\nSET Price = 25\nWHERE ProductID = 1;",
+    "hints": [
+      "Use OLD.Price and NEW.Price.",
+      "Limit the trigger to updates of Price.",
+      "Run the UPDATE after creating the trigger."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE ProductsTrigger (\n  ProductID INTEGER PRIMARY KEY,\n  ProductName TEXT,\n  Price REAL\n);\n\nCREATE TABLE ProductPriceAudit (\n  AuditID INTEGER PRIMARY KEY AUTOINCREMENT,\n  ProductID INTEGER,\n  OldPrice REAL,\n  NewPrice REAL\n);\n\nINSERT INTO ProductsTrigger (\n  ProductID,\n  ProductName,\n  Price\n)\nVALUES (\n  1,\n  'Cable',\n  20\n);",
+    "verificationSql": "SELECT\n  audit.ProductID,\n  audit.OldPrice,\n  audit.NewPrice,\n  (\n    SELECT COUNT(*)\n    FROM sqlite_master\n    WHERE type = 'trigger'\n      AND name =\n        'trg_product_price_update'\n  ) AS TriggerExists\nFROM ProductPriceAudit AS audit\nORDER BY audit.AuditID;"
+  },
+  {
+    "id": "drop-trigger",
+    "number": 85,
+    "title": "Remove a Trigger",
+    "topic": "DROP TRIGGER",
+    "difficulty": "Intermediate",
+    "description": "DROP TRIGGER removes automatic trigger behavior.",
+    "task": "Remove the trigger named trg_notes_insert.",
+    "starterSql": "",
+    "solutionSql": "DROP TRIGGER trg_notes_insert;",
+    "hints": [
+      "Use DROP TRIGGER.",
+      "The NotesTrigger table must remain.",
+      "Only the trigger should be removed."
+    ],
+    "resultOrderMatters": false,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE NotesTrigger (\n  NoteID INTEGER PRIMARY KEY,\n  NoteText TEXT\n);\n\nCREATE TABLE NotesAudit (\n  AuditID INTEGER PRIMARY KEY\n);\n\nCREATE TRIGGER trg_notes_insert\nAFTER INSERT ON NotesTrigger\nBEGIN\n  INSERT INTO NotesAudit DEFAULT VALUES;\nEND;",
+    "verificationSql": "SELECT\n  COUNT(*) AS RemainingTriggers\nFROM sqlite_master\nWHERE type = 'trigger'\n  AND name = 'trg_notes_insert';"
+  },
+  {
+    "id": "savepoint-release",
+    "number": 86,
+    "title": "Create and Release a Savepoint",
+    "topic": "SAVEPOINT",
+    "difficulty": "Advanced",
+    "description": "A savepoint marks a position inside a transaction.",
+    "task": "Begin a transaction, create a savepoint named bonus, add 100 to the wallet balance, release the savepoint, and commit.",
+    "starterSql": "",
+    "solutionSql": "BEGIN;\n\nSAVEPOINT bonus;\n\nUPDATE Wallet\nSET Balance = Balance + 100\nWHERE WalletID = 1;\n\nRELEASE SAVEPOINT bonus;\n\nCOMMIT;",
+    "hints": [
+      "Create the savepoint after BEGIN.",
+      "Use RELEASE SAVEPOINT bonus.",
+      "COMMIT finishes the transaction."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE Wallet (\n  WalletID INTEGER PRIMARY KEY,\n  Balance REAL NOT NULL\n);\n\nINSERT INTO Wallet (\n  WalletID,\n  Balance\n)\nVALUES (\n  1,\n  1000\n);",
+    "verificationSql": "SELECT\n  WalletID,\n  Balance\nFROM Wallet\nORDER BY WalletID;"
+  },
+  {
+    "id": "rollback-to-savepoint",
+    "number": 87,
+    "title": "Roll Back Part of a Transaction",
+    "topic": "ROLLBACK TO",
+    "difficulty": "Advanced",
+    "description": "ROLLBACK TO cancels only the work performed after a savepoint.",
+    "task": "Begin a transaction, add 100 to Wallet 1, create savepoint risky, subtract 500, roll back to risky, release it, and commit.",
+    "starterSql": "",
+    "solutionSql": "BEGIN;\n\nUPDATE Wallet\nSET Balance = Balance + 100\nWHERE WalletID = 1;\n\nSAVEPOINT risky;\n\nUPDATE Wallet\nSET Balance = Balance - 500\nWHERE WalletID = 1;\n\nROLLBACK TO SAVEPOINT risky;\n\nRELEASE SAVEPOINT risky;\n\nCOMMIT;",
+    "hints": [
+      "The first update occurs before the savepoint.",
+      "Only the second update should be cancelled.",
+      "The final balance should be 1100."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE Wallet (\n  WalletID INTEGER PRIMARY KEY,\n  Balance REAL NOT NULL\n);\n\nINSERT INTO Wallet (\n  WalletID,\n  Balance\n)\nVALUES (\n  1,\n  1000\n);",
+    "verificationSql": "SELECT\n  WalletID,\n  Balance\nFROM Wallet\nORDER BY WalletID;"
+  },
+  {
+    "id": "recursive-number-sequence",
+    "number": 88,
+    "title": "Build a Recursive Number Sequence",
+    "topic": "RECURSIVE CTE",
+    "difficulty": "Advanced",
+    "description": "A recursive CTE repeatedly applies a query until its stopping condition is reached.",
+    "task": "Use a recursive CTE named NumberSequence to return the numbers 1 through 10 in a column named Number.",
+    "starterSql": "",
+    "solutionSql": "WITH RECURSIVE NumberSequence (\n  Number\n) AS (\n  SELECT 1\n\n  UNION ALL\n\n  SELECT Number + 1\n  FROM NumberSequence\n  WHERE Number < 10\n)\nSELECT Number\nFROM NumberSequence\nORDER BY Number;",
+    "hints": [
+      "The first SELECT is the anchor row.",
+      "The recursive SELECT adds one.",
+      "Stop when Number reaches 10."
+    ],
+    "resultOrderMatters": true
+  },
+  {
+    "id": "recursive-factorial",
+    "number": 89,
+    "title": "Calculate Factorials Recursively",
+    "topic": "RECURSIVE CTE",
+    "difficulty": "Advanced",
+    "description": "Recursive CTEs can carry several calculated values between iterations.",
+    "task": "Return the factorial values for the numbers 1 through 7. Name the result column Factorial.",
+    "starterSql": "",
+    "solutionSql": "WITH RECURSIVE Factorials (\n  Number,\n  Factorial\n) AS (\n  SELECT\n    1,\n    1\n\n  UNION ALL\n\n  SELECT\n    Number + 1,\n    Factorial * (Number + 1)\n  FROM Factorials\n  WHERE Number < 7\n)\nSELECT\n  Number,\n  Factorial\nFROM Factorials\nORDER BY Number;",
+    "hints": [
+      "Carry Number and Factorial through the CTE.",
+      "Multiply by the next number.",
+      "Stop at Number 7."
+    ],
+    "resultOrderMatters": true
+  },
+  {
+    "id": "explain-query-plan",
+    "number": 90,
+    "title": "Inspect a Query Plan",
+    "topic": "EXPLAIN QUERY PLAN",
+    "difficulty": "Advanced",
+    "description": "EXPLAIN QUERY PLAN shows how SQLite intends to access tables and indexes.",
+    "task": "Explain the query plan for selecting all customers whose Country is Germany.",
+    "starterSql": "",
+    "solutionSql": "EXPLAIN QUERY PLAN\nSELECT *\nFROM Customers\nWHERE Country = 'Germany';",
+    "hints": [
+      "Place EXPLAIN QUERY PLAN before SELECT.",
+      "Do not run the SELECT separately.",
+      "Filter Country using Germany."
+    ],
+    "resultOrderMatters": true
+  },
+  {
+    "id": "partial-index",
+    "number": 91,
+    "title": "Create a Partial Index",
+    "topic": "PARTIAL INDEX",
+    "difficulty": "Advanced",
+    "description": "A partial index contains only rows matching a WHERE condition.",
+    "task": "Create idx_open_orders_customer on OrdersPartial.CustomerID, but include only rows whose Status is Open.",
+    "starterSql": "",
+    "solutionSql": "CREATE INDEX idx_open_orders_customer\nON OrdersPartial(CustomerID)\nWHERE Status = 'Open';",
+    "hints": [
+      "Create the index normally first.",
+      "Add a WHERE clause after the column list.",
+      "The filter value is Open."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE OrdersPartial (\n  OrderID INTEGER PRIMARY KEY,\n  CustomerID INTEGER,\n  Status TEXT\n);",
+    "verificationSql": "SELECT\n  indexes.name AS IndexName,\n  indexes.partial AS IsPartial,\n  columns.name AS ColumnName,\n  CASE\n    WHEN UPPER(\n      REPLACE(\n        REPLACE(master.sql, ' ', ''),\n        CHAR(10),\n        ''\n      )\n    ) LIKE '%WHERESTATUS=''OPEN''%'\n    THEN 1\n    ELSE 0\n  END AS HasOpenFilter\nFROM pragma_index_list(\n  'OrdersPartial'\n) AS indexes\nJOIN pragma_index_info(\n  indexes.name\n) AS columns\nJOIN sqlite_master AS master\n  ON master.type = 'index'\n  AND master.name = indexes.name\nWHERE indexes.name =\n  'idx_open_orders_customer'\nORDER BY columns.seqno;"
+  },
+  {
+    "id": "expression-index",
+    "number": 92,
+    "title": "Create an Expression Index",
+    "topic": "EXPRESSION INDEX",
+    "difficulty": "Advanced",
+    "description": "An expression index stores the result of a calculated expression.",
+    "task": "Create idx_customers_lower_email on LOWER(Email) in CustomersExpression.",
+    "starterSql": "",
+    "solutionSql": "CREATE INDEX idx_customers_lower_email\nON CustomersExpression(\n  LOWER(Email)\n);",
+    "hints": [
+      "Place LOWER(Email) inside the index column list.",
+      "Use the exact requested index name.",
+      "Expression indexes can support case-insensitive searches."
+    ],
+    "resultOrderMatters": false,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE CustomersExpression (\n  CustomerID INTEGER PRIMARY KEY,\n  Email TEXT NOT NULL\n);",
+    "verificationSql": "SELECT\n  name AS IndexName,\n  CASE\n    WHEN UPPER(\n      REPLACE(\n        REPLACE(sql, ' ', ''),\n        CHAR(10),\n        ''\n      )\n    ) LIKE '%LOWER(EMAIL)%'\n    THEN 1\n    ELSE 0\n  END AS HasLowerEmailExpression\nFROM sqlite_master\nWHERE type = 'index'\n  AND name =\n    'idx_customers_lower_email';"
+  },
+  {
+    "id": "generated-column",
+    "number": 93,
+    "title": "Create a Generated Column",
+    "topic": "GENERATED COLUMN",
+    "difficulty": "Advanced",
+    "description": "A generated column derives its value automatically from other columns.",
+    "task": "Create InvoiceLines with NetPrice, TaxRate, and a stored generated column GrossPrice calculated as NetPrice multiplied by 1 plus TaxRate and rounded to two decimals. Insert one row with NetPrice 100 and TaxRate 0.19.",
+    "starterSql": "",
+    "solutionSql": "CREATE TABLE InvoiceLines (\n  LineID INTEGER PRIMARY KEY,\n  NetPrice REAL NOT NULL,\n  TaxRate REAL NOT NULL,\n  GrossPrice REAL\n    GENERATED ALWAYS AS (\n      ROUND(\n        NetPrice * (1 + TaxRate),\n        2\n      )\n    ) STORED\n);\n\nINSERT INTO InvoiceLines (\n  LineID,\n  NetPrice,\n  TaxRate\n)\nVALUES (\n  1,\n  100,\n  0.19\n);",
+    "hints": [
+      "Use GENERATED ALWAYS AS.",
+      "The generated expression uses NetPrice and TaxRate.",
+      "Do not insert GrossPrice manually."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "SELECT 1;",
+    "verificationSql": "SELECT\n  lines.LineID,\n  lines.NetPrice,\n  lines.TaxRate,\n  lines.GrossPrice,\n  (\n    SELECT hidden\n    FROM pragma_table_xinfo(\n      'InvoiceLines'\n    )\n    WHERE name = 'GrossPrice'\n  ) AS GeneratedKind\nFROM InvoiceLines AS lines\nORDER BY lines.LineID;"
+  },
+  {
+    "id": "self-referencing-foreign-key",
+    "number": 94,
+    "title": "Create a Self-Referencing Relationship",
+    "topic": "SELF REFERENCE",
+    "difficulty": "Advanced",
+    "description": "A self-referencing foreign key connects rows within the same table.",
+    "task": "Create EmployeesTree with EmployeeID, EmployeeName, and ManagerID referencing EmployeesTree.EmployeeID. Insert Alice as manager and Bob reporting to Alice.",
+    "starterSql": "",
+    "solutionSql": "CREATE TABLE EmployeesTree (\n  EmployeeID INTEGER PRIMARY KEY,\n  EmployeeName TEXT NOT NULL,\n  ManagerID INTEGER,\n  FOREIGN KEY (ManagerID)\n    REFERENCES EmployeesTree(\n      EmployeeID\n    )\n);\n\nINSERT INTO EmployeesTree (\n  EmployeeID,\n  EmployeeName,\n  ManagerID\n)\nVALUES\n  (1, 'Alice', NULL),\n  (2, 'Bob', 1);",
+    "hints": [
+      "The parent and child table are the same.",
+      "Alice has no manager.",
+      "Bob stores Alice's EmployeeID in ManagerID."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "SELECT 1;",
+    "verificationSql": "SELECT\n  employees.EmployeeID,\n  employees.EmployeeName,\n  employees.ManagerID,\n  (\n    SELECT COUNT(*)\n    FROM pragma_foreign_key_list(\n      'EmployeesTree'\n    )\n    WHERE \"from\" = 'ManagerID'\n      AND \"table\" = 'EmployeesTree'\n      AND \"to\" = 'EmployeeID'\n  ) AS HasSelfReference\nFROM EmployeesTree AS employees\nORDER BY employees.EmployeeID;"
+  },
+  {
+    "id": "multi-column-index",
+    "number": 95,
+    "title": "Create a Multi-Column Index",
+    "topic": "COMPOSITE INDEX",
+    "difficulty": "Advanced",
+    "description": "A multi-column index can optimize filters and sorting that use the same leading columns.",
+    "task": "Create idx_shipments_customer_date on CustomerID followed by ShippedDate in Shipments.",
+    "starterSql": "",
+    "solutionSql": "CREATE INDEX idx_shipments_customer_date\nON Shipments (\n  CustomerID,\n  ShippedDate\n);",
+    "hints": [
+      "Column order matters in an index.",
+      "CustomerID must come first.",
+      "ShippedDate must come second."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE Shipments (\n  ShipmentID INTEGER PRIMARY KEY,\n  CustomerID INTEGER,\n  ShippedDate TEXT\n);",
+    "verificationSql": "SELECT\n  indexes.name AS IndexName,\n  columns.seqno AS Sequence,\n  columns.name AS ColumnName\nFROM pragma_index_list(\n  'Shipments'\n) AS indexes\nJOIN pragma_index_info(\n  indexes.name\n) AS columns\nWHERE indexes.name =\n  'idx_shipments_customer_date'\nORDER BY columns.seqno;"
+  },
+  {
+    "id": "capstone-customer-revenue",
+    "number": 96,
+    "title": "Project: Top Customers by Revenue",
+    "topic": "JOIN and GROUP BY",
+    "difficulty": "Advanced",
+    "description": "Combine several related tables to calculate a business metric.",
+    "task": "Return the ten customers with the highest calculated revenue. Use Quantity multiplied by Price and name the rounded total Revenue.",
+    "starterSql": "",
+    "solutionSql": "SELECT\n  customers.CustomerID,\n  customers.CustomerName,\n  ROUND(\n    SUM(\n      details.Quantity *\n      products.Price\n    ),\n    2\n  ) AS Revenue\nFROM Customers AS customers\nJOIN Orders AS orders\n  ON orders.CustomerID =\n    customers.CustomerID\nJOIN OrderDetails AS details\n  ON details.OrderID =\n    orders.OrderID\nJOIN Products AS products\n  ON products.ProductID =\n    details.ProductID\nGROUP BY\n  customers.CustomerID,\n  customers.CustomerName\nORDER BY\n  Revenue DESC,\n  customers.CustomerName\nLIMIT 10;",
+    "hints": [
+      "Join Customers, Orders, OrderDetails, and Products.",
+      "Revenue is Quantity multiplied by Price.",
+      "Group by the customer columns."
+    ],
+    "resultOrderMatters": true
+  },
+  {
+    "id": "capstone-category-analysis",
+    "number": 97,
+    "title": "Project: Category Analysis",
+    "topic": "AGGREGATE REPORT",
+    "difficulty": "Advanced",
+    "description": "A grouped report can combine counts, averages, and totals.",
+    "task": "Return every category with ProductCount, AveragePrice rounded to two decimals, and TotalCatalogValue rounded to two decimals. Keep categories without products.",
+    "starterSql": "",
+    "solutionSql": "SELECT\n  categories.CategoryName,\n  COUNT(\n    products.ProductID\n  ) AS ProductCount,\n  ROUND(\n    AVG(products.Price),\n    2\n  ) AS AveragePrice,\n  ROUND(\n    SUM(products.Price),\n    2\n  ) AS TotalCatalogValue\nFROM Categories AS categories\nLEFT JOIN Products AS products\n  ON products.CategoryID =\n    categories.CategoryID\nGROUP BY\n  categories.CategoryID,\n  categories.CategoryName\nORDER BY\n  ProductCount DESC,\n  categories.CategoryName;",
+    "hints": [
+      "Use Categories as the left table.",
+      "COUNT should use ProductID.",
+      "Group by the category identifier and name."
+    ],
+    "resultOrderMatters": true
+  },
+  {
+    "id": "capstone-normalized-school",
+    "number": 98,
+    "title": "Project: Build a Normalized School Database",
+    "topic": "NORMALIZATION",
+    "difficulty": "Advanced",
+    "description": "A normalized design separates entities and connects them through keys.",
+    "task": "Create StudentsProject, CoursesProject, and EnrollmentsProject. EnrollmentsProject must use a composite primary key and foreign keys to both parent tables. Insert Anna in SQL Basics with grade A.",
+    "starterSql": "",
+    "solutionSql": "CREATE TABLE StudentsProject (\n  StudentID INTEGER PRIMARY KEY,\n  StudentName TEXT NOT NULL\n);\n\nCREATE TABLE CoursesProject (\n  CourseID INTEGER PRIMARY KEY,\n  CourseName TEXT NOT NULL\n);\n\nCREATE TABLE EnrollmentsProject (\n  StudentID INTEGER,\n  CourseID INTEGER,\n  Grade TEXT,\n  PRIMARY KEY (\n    StudentID,\n    CourseID\n  ),\n  FOREIGN KEY (StudentID)\n    REFERENCES StudentsProject(\n      StudentID\n    ),\n  FOREIGN KEY (CourseID)\n    REFERENCES CoursesProject(\n      CourseID\n    )\n);\n\nINSERT INTO StudentsProject (\n  StudentID,\n  StudentName\n)\nVALUES (\n  1,\n  'Anna'\n);\n\nINSERT INTO CoursesProject (\n  CourseID,\n  CourseName\n)\nVALUES (\n  10,\n  'SQL Basics'\n);\n\nINSERT INTO EnrollmentsProject (\n  StudentID,\n  CourseID,\n  Grade\n)\nVALUES (\n  1,\n  10,\n  'A'\n);",
+    "hints": [
+      "Create the parent tables first.",
+      "The enrollment key contains StudentID and CourseID.",
+      "EnrollmentsProject requires two foreign keys."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "SELECT 1;",
+    "verificationSql": "SELECT\n  students.StudentName,\n  courses.CourseName,\n  enrollments.Grade,\n  (\n    SELECT COUNT(*)\n    FROM pragma_foreign_key_list(\n      'EnrollmentsProject'\n    )\n  ) AS ForeignKeyCount\nFROM EnrollmentsProject AS enrollments\nJOIN StudentsProject AS students\n  ON students.StudentID =\n    enrollments.StudentID\nJOIN CoursesProject AS courses\n  ON courses.CourseID =\n    enrollments.CourseID\nORDER BY\n  students.StudentName,\n  courses.CourseName;"
+  },
+  {
+    "id": "capstone-trigger-transfer",
+    "number": 99,
+    "title": "Project: Automated Account Transfer",
+    "topic": "TRIGGER and TRANSACTION",
+    "difficulty": "Advanced",
+    "description": "Triggers and transactions can implement an atomic business operation.",
+    "task": "Create trg_process_transfer. After a row is inserted into TransfersProject, subtract Amount from FromAccountID and add it to ToAccountID. Then insert a transfer of 125 from Account 1 to Account 2 inside a transaction.",
+    "starterSql": "",
+    "solutionSql": "CREATE TRIGGER trg_process_transfer\nAFTER INSERT ON TransfersProject\nBEGIN\n  UPDATE AccountsProject\n  SET Balance =\n    Balance - NEW.Amount\n  WHERE AccountID =\n    NEW.FromAccountID;\n\n  UPDATE AccountsProject\n  SET Balance =\n    Balance + NEW.Amount\n  WHERE AccountID =\n    NEW.ToAccountID;\nEND;\n\nBEGIN;\n\nINSERT INTO TransfersProject (\n  TransferID,\n  FromAccountID,\n  ToAccountID,\n  Amount\n)\nVALUES (\n  1,\n  1,\n  2,\n  125\n);\n\nCOMMIT;",
+    "hints": [
+      "The trigger performs two UPDATE statements.",
+      "Use NEW.Amount and the two NEW account IDs.",
+      "Insert the transfer between BEGIN and COMMIT."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "CREATE TABLE AccountsProject (\n  AccountID INTEGER PRIMARY KEY,\n  AccountName TEXT NOT NULL,\n  Balance REAL NOT NULL\n);\n\nCREATE TABLE TransfersProject (\n  TransferID INTEGER PRIMARY KEY,\n  FromAccountID INTEGER NOT NULL,\n  ToAccountID INTEGER NOT NULL,\n  Amount REAL NOT NULL\n);\n\nINSERT INTO AccountsProject (\n  AccountID,\n  AccountName,\n  Balance\n)\nVALUES\n  (1, 'Main', 1000),\n  (2, 'Savings', 500);",
+    "verificationSql": "SELECT\n  accounts.AccountID,\n  accounts.AccountName,\n  accounts.Balance,\n  (\n    SELECT COUNT(*)\n    FROM TransfersProject\n  ) AS TransferCount,\n  (\n    SELECT COUNT(*)\n    FROM sqlite_master\n    WHERE type = 'trigger'\n      AND name =\n        'trg_process_transfer'\n  ) AS TriggerCount\nFROM AccountsProject AS accounts\nORDER BY accounts.AccountID;"
+  },
+  {
+    "id": "sql-pro-final-project",
+    "number": 100,
+    "title": "Final Project: Build the SQLTrain Railway",
+    "topic": "SQL PRO PROJECT",
+    "difficulty": "Advanced",
+    "description": "Combine tables, keys, relationships, indexes, data, and a view into one complete database design.",
+    "task": "Build StationsFinal, RoutesFinal, and RouteStopsFinal. Use primary and foreign keys, create a composite index on RouteID and StopNumber, insert the SQL Express route from Berlin to Munich, and create a RouteSchedule view.",
+    "starterSql": "",
+    "solutionSql": "CREATE TABLE StationsFinal (\n  StationID INTEGER PRIMARY KEY,\n  StationName TEXT NOT NULL UNIQUE\n);\n\nCREATE TABLE RoutesFinal (\n  RouteID INTEGER PRIMARY KEY,\n  RouteName TEXT NOT NULL\n);\n\nCREATE TABLE RouteStopsFinal (\n  RouteID INTEGER,\n  StopNumber INTEGER,\n  StationID INTEGER NOT NULL,\n  ArrivalTime TEXT,\n  PRIMARY KEY (\n    RouteID,\n    StopNumber\n  ),\n  FOREIGN KEY (RouteID)\n    REFERENCES RoutesFinal(RouteID),\n  FOREIGN KEY (StationID)\n    REFERENCES StationsFinal(StationID)\n);\n\nCREATE INDEX\n  idx_route_stops_route_number\nON RouteStopsFinal (\n  RouteID,\n  StopNumber\n);\n\nINSERT INTO StationsFinal (\n  StationID,\n  StationName\n)\nVALUES\n  (1, 'Berlin'),\n  (2, 'Hamburg'),\n  (3, 'Munich');\n\nINSERT INTO RoutesFinal (\n  RouteID,\n  RouteName\n)\nVALUES (\n  100,\n  'SQL Express'\n);\n\nINSERT INTO RouteStopsFinal (\n  RouteID,\n  StopNumber,\n  StationID,\n  ArrivalTime\n)\nVALUES\n  (100, 1, 1, '08:00'),\n  (100, 2, 2, '10:00'),\n  (100, 3, 3, '14:00');\n\nCREATE VIEW RouteSchedule AS\nSELECT\n  routes.RouteName,\n  stops.StopNumber,\n  stations.StationName,\n  stops.ArrivalTime\nFROM RouteStopsFinal AS stops\nJOIN RoutesFinal AS routes\n  ON routes.RouteID =\n    stops.RouteID\nJOIN StationsFinal AS stations\n  ON stations.StationID =\n    stops.StationID;",
+    "hints": [
+      "Create the parent tables before RouteStopsFinal.",
+      "RouteStopsFinal uses two foreign keys and a composite primary key.",
+      "Create the view only after all tables exist."
+    ],
+    "resultOrderMatters": true,
+    "executionMode": "sandbox",
+    "setupSql": "SELECT 1;",
+    "verificationSql": "SELECT\n  schedule.RouteName,\n  schedule.StopNumber,\n  schedule.StationName,\n  schedule.ArrivalTime,\n  (\n    SELECT COUNT(*)\n    FROM pragma_foreign_key_list(\n      'RouteStopsFinal'\n    )\n  ) AS ForeignKeyCount,\n  (\n    SELECT COUNT(*)\n    FROM sqlite_master\n    WHERE type = 'index'\n      AND name =\n        'idx_route_stops_route_number'\n  ) AS IndexCount\nFROM RouteSchedule AS schedule\nORDER BY schedule.StopNumber;"
+  }
 
 ];
 

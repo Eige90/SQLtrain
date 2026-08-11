@@ -10,6 +10,7 @@ import { BadgeUnlockedToast } from "@/components/lessons/BadgeUnlockedToast";
 import { BadgesDialog } from "@/components/lessons/BadgesDialog";
 import { LessonRewardsBar } from "@/components/lessons/LessonRewardsBar";
 import { LessonsDialog } from "@/components/lessons/LessonsDialog";
+import { SqlProCelebrationDialog } from "@/components/lessons/SqlProCelebrationDialog";
 import { SqlEditor } from "@/components/editor/SqlEditor";
 import { QueryResults } from "@/components/results/QueryResults";
 import { SQL_LESSONS, getSqlLesson } from "@/data/lessons";
@@ -66,6 +67,11 @@ export function SqlWorkbench() {
 
   const [unlockedBadge, setUnlockedBadge] =
     useState<LessonBadge | null>(null);
+
+  const [
+    isSqlProCelebrationOpen,
+    setIsSqlProCelebrationOpen,
+  ] = useState(false);
 
   const activeLesson = activeLessonId
     ? getSqlLesson(activeLessonId)
@@ -265,7 +271,14 @@ export function SqlWorkbench() {
             recordLessonCompletionDate(),
           );
 
-          if (newlyUnlockedBadge) {
+          const completedAllLessons =
+            nextCompletedLessonIds.length ===
+            SQL_LESSONS.length;
+
+          if (completedAllLessons) {
+            setUnlockedBadge(null);
+            setIsSqlProCelebrationOpen(true);
+          } else if (newlyUnlockedBadge) {
             setUnlockedBadge(
               newlyUnlockedBadge,
             );
@@ -312,6 +325,7 @@ export function SqlWorkbench() {
     setLastRewardXp(null);
     setIsLessonsOpen(false);
     setIsManagerOpen(false);
+    setIsSqlProCelebrationOpen(false);
     setSql(DEFAULT_SQL);
     setResult(null);
     setError(null);
@@ -494,6 +508,18 @@ export function SqlWorkbench() {
           </a>
         </div>
       </footer>
+
+      <SqlProCelebrationDialog
+        isOpen={isSqlProCelebrationOpen}
+        onClose={() =>
+          setIsSqlProCelebrationOpen(false)
+        }
+        onOpenBadges={() => {
+          setIsSqlProCelebrationOpen(false);
+          setIsBadgesOpen(true);
+        }}
+        onReturnHome={returnHome}
+      />
 
       <BadgeUnlockedToast
         badge={unlockedBadge}

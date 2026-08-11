@@ -15,7 +15,13 @@ function isSafeQueryLessonSql(sql: string): boolean {
     .trim()
     .replace(/;+\s*$/, "");
 
-  if (!/^(SELECT|WITH)\b/i.test(normalizedSql)) {
+  const isReadOnlyQuery =
+    /^(SELECT|WITH)\b/i.test(normalizedSql) ||
+    /^EXPLAIN\s+QUERY\s+PLAN\s+(SELECT|WITH)\b/i.test(
+      normalizedSql,
+    );
+
+  if (!isReadOnlyQuery) {
     return false;
   }
 

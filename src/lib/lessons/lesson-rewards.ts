@@ -257,6 +257,78 @@ const BADGE_DEFINITIONS: BadgeDefinition[] = [
     icon: "🚄",
     isEarned: (ids) => ids.length >= 75,
   },
+  {
+    id: "composite-key-specialist",
+    title: "Composite Key Specialist",
+    description:
+      "Master composite primary and foreign keys.",
+    icon: "🧩",
+    isEarned: (ids) =>
+      completedRange(ids, 76, 77),
+  },
+  {
+    id: "referential-action-controller",
+    title: "Referential Action Controller",
+    description:
+      "Master CASCADE and SET NULL.",
+    icon: "🎛️",
+    isEarned: (ids) =>
+      completedRange(ids, 78, 80),
+  },
+  {
+    id: "trigger-engineer",
+    title: "Trigger Engineer",
+    description:
+      "Create, use, and remove SQL triggers.",
+    icon: "⚡",
+    isEarned: (ids) =>
+      completedRange(ids, 83, 85),
+  },
+  {
+    id: "savepoint-navigator",
+    title: "Savepoint Navigator",
+    description:
+      "Control partial transaction rollbacks.",
+    icon: "🧭",
+    isEarned: (ids) =>
+      completedRange(ids, 86, 87),
+  },
+  {
+    id: "recursive-thinker",
+    title: "Recursive Thinker",
+    description:
+      "Complete the recursive CTE challenges.",
+    icon: "🌀",
+    isEarned: (ids) =>
+      completedRange(ids, 88, 89),
+  },
+  {
+    id: "query-optimizer",
+    title: "Query Optimizer",
+    description:
+      "Master query plans and advanced indexes.",
+    icon: "🏎️",
+    isEarned: (ids) =>
+      completedRange(ids, 90, 95),
+  },
+  {
+    id: "sql-project-builder",
+    title: "SQL Project Builder",
+    description:
+      "Complete the advanced SQL projects.",
+    icon: "🏗️",
+    isEarned: (ids) =>
+      completedRange(ids, 96, 99),
+  },
+  {
+    id: "sql-pro",
+    title: "SQL Pro",
+    description:
+      "Complete all 100 SQLTrain lessons.",
+    icon: "👑",
+    isEarned: (ids) =>
+      ids.length >= 100,
+  },
 ];
 
 export function getLessonXp(
@@ -410,9 +482,12 @@ export function getLessonRewardSummary(
     completedLessonIds,
   )
     .filter((badge) => badge.earned)
-    .map(({ earned: _earned, ...badge }) =>
-      badge,
-    );
+    .map((badge) => ({
+      id: badge.id,
+      title: badge.title,
+      description: badge.description,
+      icon: badge.icon,
+    }));
 
   return {
     totalXp,
