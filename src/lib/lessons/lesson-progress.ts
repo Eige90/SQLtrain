@@ -74,13 +74,6 @@ export function subscribeToLessonProgress(
     onStoreChange,
   );
 
-  // React hydrates with the server snapshot first.
-  // Re-check localStorage immediately after the
-  // browser subscription is established.
-  queueMicrotask(
-    onStoreChange,
-  );
-
   return () => {
     window.removeEventListener(
       "storage",

@@ -54,6 +54,8 @@ import type { LessonValidationResult } from "@/types/lesson";
 
 const DEFAULT_SQL = "SELECT * FROM Customers;";
 
+
+
 export function SqlWorkbench() {
   const [sql, setSql] = useState(DEFAULT_SQL);
   const [tables, setTables] = useState<DatabaseTableSummary[]>([]);
@@ -75,6 +77,10 @@ export function SqlWorkbench() {
   const [isLessonsOpen, setIsLessonsOpen] = useState(false);
   const [activeLessonId, setActiveLessonId] =
     useState<string | null>(null);
+  const [hasHydrated, setHasHydrated] =
+    useState(false);
+
+
   const lessonProgressSnapshot =
     useSyncExternalStore(
       subscribeToLessonProgress,
@@ -85,13 +91,17 @@ export function SqlWorkbench() {
   const completedLessonIds =
     useMemo(
       () =>
-        parseCompletedLessonIdsSnapshot(
-          lessonProgressSnapshot,
-        ),
+        hasHydrated
+          ? parseCompletedLessonIdsSnapshot(
+              lessonProgressSnapshot,
+            )
+          : [],
       [
+        hasHydrated,
         lessonProgressSnapshot,
       ],
     );
+
   const [lessonFeedback, setLessonFeedback] =
     useState<LessonValidationResult | null>(null);
   const [isCheckingLesson, setIsCheckingLesson] =
@@ -133,6 +143,22 @@ export function SqlWorkbench() {
 
   const refreshTables = useCallback(async () => {
     setTables(await sqliteClient.listTables());
+  }, []);
+
+  useEffect(() => {
+    const timeoutId =
+      window.setTimeout(
+        () => {
+          setHasHydrated(true);
+        },
+        0,
+      );
+
+    return () => {
+      window.clearTimeout(
+        timeoutId,
+      );
+    };
   }, []);
 
   useEffect(() => {
@@ -493,6 +519,7 @@ export function SqlWorkbench() {
 
             <button
               type="button"
+              autoComplete="off"
               onClick={startMystery}
               disabled={!mysteryUnlocked}
               title={
@@ -537,8 +564,8 @@ export function SqlWorkbench() {
         </div>
       )}
 
-      <div className="mx-auto grid max-w-[1600px] gap-5 p-4 sm:p-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="space-y-5">
+      <div className="mx-auto grid w-full min-w-0 max-w-[1600px] gap-5 p-4 sm:p-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="min-w-0 space-y-5">
           {activeLesson && (
             <ActiveLessonCard
               lesson={activeLesson}
@@ -563,7 +590,7 @@ export function SqlWorkbench() {
             />
           )}
 
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
               <div>
                 <h2 className="font-semibold text-slate-900">SQL Statement</h2>
@@ -592,7 +619,7 @@ export function SqlWorkbench() {
             <SqlEditor value={sql} onChange={setSql} />
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <h2 className="mb-4 font-semibold text-slate-900">Result</h2>
             <QueryResults result={result} error={error} />
           </div>

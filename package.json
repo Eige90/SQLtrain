@@ -9,7 +9,9 @@
     "lint": "eslint",
     "test:page": "playwright test tests/e2e",
     "test:page:headed": "playwright test tests/e2e --headed",
-    "test:all": "npm run lint && npm run build && python3 tools/verify-mystery-final.py && npm run test:page"
+    "test:all": "npm run lint && npm run build && python3 tools/verify-mystery-final.py && npm run test:page",
+    "test:responsive": "playwright test tests/e2e/responsive.spec.ts",
+    "test:functional": "playwright test --project=functional-chromium"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
