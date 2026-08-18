@@ -328,7 +328,7 @@ export function RelationshipsPanel({
     childColumn.length > 0;
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4">
+    <section data-testid="database-relationships-panel" className="min-w-0 rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
       <div>
         <h3 className="font-semibold text-slate-900">
           Table Relationships
@@ -448,7 +448,7 @@ export function RelationshipsPanel({
             </label>
           </fieldset>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium text-slate-700">
               On update
               <select
@@ -497,7 +497,7 @@ export function RelationshipsPanel({
               type="button"
               onClick={() => void validateRelationship()}
               disabled={!formComplete || isValidating || isCreating}
-              className="rounded-lg border border-sky-300 px-3 py-2 text-sm font-semibold text-sky-800 transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-11 rounded-lg border border-sky-300 px-3 py-2 text-sm font-semibold text-sky-800 transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isValidating
                 ? "Validating..."
@@ -508,7 +508,7 @@ export function RelationshipsPanel({
               type="button"
               onClick={() => void createRelationship()}
               disabled={!formComplete || isValidating || isCreating}
-              className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-11 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isCreating
                 ? "Creating..."
@@ -576,7 +576,7 @@ export function RelationshipsPanel({
       )}
 
       <div className="mt-5 border-t border-slate-200 pt-4">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
           <h4 className="text-sm font-semibold text-slate-900">
             Existing Relationships
           </h4>

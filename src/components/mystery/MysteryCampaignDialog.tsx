@@ -745,17 +745,17 @@ export function MysteryCampaignDialog({
         className="flex h-[100dvh] w-full flex-col overflow-hidden"
       >
         <header className="shrink-0 border-b border-red-400/20 bg-[linear-gradient(120deg,#210b0b,#111827_48%,#172554)] px-4 py-3 text-white">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start justify-between gap-2 sm:items-center sm:gap-3">
             <div className="min-w-0">
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-red-300">
                 Case File #714
               </p>
 
-              <h2 className="truncate text-xl font-black">
+              <h2 className="truncate text-base font-black sm:text-xl">
                 The Night Train to Bern
               </h2>
 
-              <p className="truncate text-xs text-slate-300">
+              <p className="truncate text-[10px] text-slate-300 sm:text-xs">
                 Nora Keller · Alpenstern
                 714 · Munich → Bern ·
                 22:18–22:31
@@ -765,15 +765,15 @@ export function MysteryCampaignDialog({
             <button
               type="button"
               onClick={onClose}
-              className="shrink-0 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/10"
+              className="shrink-0 rounded-lg border border-white/15 bg-white/5 px-2 py-1.5 text-[10px] font-bold text-slate-200 hover:bg-white/10 sm:px-3 sm:py-2 sm:text-xs"
             >
               Exit Investigation
             </button>
           </div>
         </header>
 
-        <div className="grid min-h-0 flex-1 lg:grid-cols-[270px_minmax(0,1fr)_245px]">
-          <aside className="min-h-0 overflow-y-auto border-r border-white/10 bg-[#07111f] p-3 text-white">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[#07111f] lg:grid lg:grid-cols-[270px_minmax(0,1fr)_245px] lg:overflow-hidden">
+          <aside className="border-b border-white/10 bg-[#07111f] p-3 text-white lg:min-h-0 lg:overflow-y-auto lg:border-b-0 lg:border-r">
             <section className="rounded-xl border border-red-400/20 bg-red-400/5 p-3">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-300">
                 Current Chapter
@@ -808,7 +808,7 @@ export function MysteryCampaignDialog({
                 </span>
               </div>
 
-              <div className="mt-2 grid grid-cols-5 gap-1">
+              <div className="mt-2 grid grid-cols-10 gap-1 lg:grid-cols-5">
                 {MYSTERY_LEVELS.map(
                   (level) => {
                     const completed =
@@ -867,7 +867,7 @@ export function MysteryCampaignDialog({
                 unlocked
               </p>
 
-              <div className="mt-2 space-y-1.5">
+              <div className="mt-2 grid auto-cols-[minmax(210px,1fr)] grid-flow-col gap-2 overflow-x-auto pb-2 lg:block lg:space-y-1.5 lg:overflow-visible lg:pb-0">
                 {availableTables.map(
                   (table) => {
                     const expanded =
@@ -952,7 +952,7 @@ export function MysteryCampaignDialog({
                 Level Progress
               </p>
 
-              <div className="mt-2 space-y-1.5">
+              <div className="mt-2 grid auto-cols-[minmax(180px,1fr)] grid-flow-col gap-2 overflow-x-auto pb-2 lg:block lg:space-y-1.5 lg:overflow-visible lg:pb-0">
                 {levelTasks.map(
                   (task, index) => {
                     const completed =
@@ -1014,8 +1014,8 @@ export function MysteryCampaignDialog({
             </section>
           </aside>
 
-          <main className="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden bg-slate-100 p-3">
-            <section className="rounded-xl border border-red-200 bg-white p-4 shadow-sm">
+          <main className="min-w-0 bg-slate-100 p-2.5 sm:p-3 lg:min-h-0 lg:overflow-y-auto lg:overflow-x-hidden">
+            <section className="rounded-xl border border-red-200 bg-white p-3 shadow-sm sm:p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.18em] text-red-600">
@@ -1025,7 +1025,7 @@ export function MysteryCampaignDialog({
                     {activeTask.position}/5
                   </p>
 
-                  <h3 className="mt-1 text-xl font-black text-slate-950">
+                  <h3 className="mt-1 text-lg font-black text-slate-950 sm:text-xl">
                     {activeTask.title}
                   </h3>
                 </div>
@@ -1089,7 +1089,7 @@ export function MysteryCampaignDialog({
                 </div>
               )}
 
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                 <button
                   type="button"
                   onClick={() =>
@@ -1154,7 +1154,7 @@ export function MysteryCampaignDialog({
                   </p>
                 </div>
 
-                <div className="flex gap-1.5">
+                <div className="mt-3 grid w-full grid-cols-1 gap-2 sm:mt-0 sm:w-auto sm:grid-cols-none sm:flex sm:gap-1.5">
                   <button
                     type="button"
                     onClick={
@@ -1193,7 +1193,7 @@ export function MysteryCampaignDialog({
                 </div>
               </div>
 
-              <div className="h-[190px]">
+              <div className="h-[270px] sm:h-[240px] lg:h-[190px]">
                 <SqlEditor
                   value={sql}
                   onChange={setSql}
@@ -1254,8 +1254,8 @@ export function MysteryCampaignDialog({
             )}
           </main>
 
-          <aside className="min-h-0 overflow-y-auto border-l border-white/10 bg-[#091426] p-3 text-white">
-            <div className="sticky top-0">
+          <aside className="border-t border-white/10 bg-[#091426] p-3 text-white lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
+            <div className="lg:sticky lg:top-0">
               <div className="rounded-xl border border-red-400/20 bg-red-400/[0.06] p-3">
                 <p className="text-[10px] font-black uppercase tracking-[0.22em] text-red-300">
                   Suspect Board
@@ -1278,7 +1278,7 @@ export function MysteryCampaignDialog({
                 </div>
               </div>
 
-              <div className="mt-3 space-y-2">
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:block lg:space-y-2">
                 {suspectBoard.map(
                   (suspect) => {
                     const statusClasses =

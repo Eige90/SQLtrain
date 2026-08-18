@@ -116,6 +116,97 @@ function parseWorksheet(
   };
 }
 
+function hasUtf16LittleEndianBom(bytes: Uint8Array): boolean {
+  return (
+    bytes.length >= 2 &&
+    bytes[0] === 0xff &&
+    bytes[1] === 0xfe
+  );
+}
+
+function hasUtf16BigEndianBom(bytes: Uint8Array): boolean {
+  return (
+    bytes.length >= 2 &&
+    bytes[0] === 0xfe &&
+    bytes[1] === 0xff
+  );
+}
+
+function decodeCsvBytes(fileData: ArrayBuffer): string {
+  const bytes = new Uint8Array(fileData);
+
+  if (hasUtf16LittleEndianBom(bytes)) {
+    return new TextDecoder("utf-16le").decode(bytes);
+  }
+
+  if (hasUtf16BigEndianBom(bytes)) {
+    return new TextDecoder("utf-16be").decode(bytes);
+  }
+
+  /*
+   * Most modern CSV files are UTF-8. Using fatal mode is
+   * important because it lets us distinguish valid UTF-8 from
+   * older Windows-1252 / ANSI files instead of silently inserting
+   * replacement characters.
+   */
+  try {
+    return new TextDecoder(
+      "utf-8",
+      {
+        fatal: true,
+      },
+    ).decode(bytes);
+  } catch {
+    /*
+     * Older Excel installations and other Windows applications
+     * commonly create single-byte CSV files. Windows-1252 covers
+     * the usual Western European characters while the browser
+     * TextDecoder converts them into a normal JavaScript string.
+     */
+    return new TextDecoder(
+      "windows-1252",
+    ).decode(bytes);
+  }
+}
+
+function readWorkbook(
+  fileType: ImportFileType,
+  fileData: ArrayBuffer,
+): XLSX.WorkBook {
+  if (fileType === "csv") {
+    const csvText = decodeCsvBytes(fileData);
+
+    /*
+     * The CSV bytes have already been decoded into a Unicode
+     * JavaScript string. Passing type="string" prevents SheetJS
+     * from interpreting the raw UTF-8 bytes as a legacy codepage.
+     *
+     * SheetJS still performs its normal delimiter detection, so
+     * comma-, semicolon-, tab- and pipe-separated files remain
+     * supported.
+     */
+    return XLSX.read(
+      csvText,
+      {
+        type: "string",
+        cellDates: true,
+      },
+    );
+  }
+
+  /*
+   * XLSX and XLS are binary workbook formats. They must continue
+   * to be passed as raw bytes.
+   */
+  return XLSX.read(
+    fileData,
+    {
+      type: "array",
+      cellDates: true,
+    },
+  );
+}
+
 export async function parseImportFile(
   file: File,
 ): Promise<ParsedImportFile> {
@@ -132,13 +223,16 @@ export async function parseImportFile(
   const fileType = getFileType(file.name);
   const fileData = await file.arrayBuffer();
 
-  const workbook = XLSX.read(fileData, {
-    type: "array",
-    cellDates: true,
-  });
+  const workbook = readWorkbook(
+    fileType,
+    fileData,
+  );
 
   const sheets = workbook.SheetNames.map((sheetName) =>
-    parseWorksheet(workbook, sheetName),
+    parseWorksheet(
+      workbook,
+      sheetName,
+    ),
   );
 
   if (sheets.length === 0) {

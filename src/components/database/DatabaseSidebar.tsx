@@ -20,7 +20,7 @@ export function DatabaseSidebar({
   onReset,
 }: DatabaseSidebarProps) {
   return (
-    <aside className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <aside className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <button
         type="button"
         onClick={onOpenManager}
@@ -33,7 +33,7 @@ export function DatabaseSidebar({
         <Settings2 size={17} aria-hidden="true" className="text-slate-500" />
       </button>
 
-      <div className="grid grid-cols-[1fr_auto] gap-4 border-b border-slate-200 bg-slate-50 px-5 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-5">
         <span>Tablenames</span>
         <span>Records</span>
       </div>
@@ -47,9 +47,9 @@ export function DatabaseSidebar({
               type="button"
               key={table.name}
               onClick={() => onSelectTable(table.name)}
-              className="grid w-full grid-cols-[1fr_auto] gap-4 px-5 py-2.5 text-left text-sm transition hover:bg-emerald-50"
+              className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-3 px-4 py-3 text-left text-sm transition hover:bg-emerald-50 sm:px-5 sm:py-2.5"
             >
-              <span className="font-medium text-emerald-700">{table.name}</span>
+              <span className="min-w-0 truncate font-medium text-emerald-700">{table.name}</span>
               <span className="tabular-nums text-slate-600">{table.recordCount}</span>
             </button>
           ))

@@ -218,7 +218,7 @@ export function FileImportDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/65 p-4"
+      className="fixed inset-0 z-[80] flex items-stretch justify-center bg-slate-950/65 p-0 sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={onClose}
     >
@@ -226,10 +226,10 @@ export function FileImportDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="file-import-title"
-        className="max-h-[92vh] w-full max-w-6xl overflow-auto rounded-2xl bg-white shadow-2xl"
+        className="flex h-[100dvh] w-full max-w-6xl flex-col overflow-hidden bg-white shadow-2xl sm:h-auto sm:max-h-[92vh] sm:rounded-2xl"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <header className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <header className="sticky top-0 z-20 flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
           <div>
             <h3
               id="file-import-title"
@@ -255,14 +255,14 @@ export function FileImportDialog({
           </button>
         </header>
 
-        <div className="space-y-6 p-6">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3 sm:space-y-6 sm:p-6">
           {error && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
           )}
 
-          <section className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
+          <section className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center sm:p-6">
             <FileSpreadsheet
               size={36}
               className="mx-auto text-emerald-600"
@@ -277,7 +277,7 @@ export function FileImportDialog({
               XLSX, XLS, or CSV · Maximum file size 25 MB
             </p>
 
-            <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+            <label className="mt-4 inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
               <Upload size={16} aria-hidden="true" />
 
               {isParsing ? "Reading File..." : "Choose File"}
@@ -425,8 +425,8 @@ export function FileImportDialog({
                   {preview.totalRows.toLocaleString("en-US")} rows
                 </p>
 
-                <div className="mt-3 overflow-auto rounded-xl border border-slate-200">
-                  <table className="min-w-full text-left text-sm">
+                <div className="mt-3 max-w-full overflow-auto rounded-xl border border-slate-200">
+                  <table className="min-w-max text-left text-sm">
                     <thead className="bg-slate-100">
                       <tr>
                         <th className="px-3 py-2">Source</th>
@@ -462,8 +462,8 @@ export function FileImportDialog({
                   Data Preview
                 </h4>
 
-                <div className="mt-3 max-h-[320px] overflow-auto rounded-xl border border-slate-200">
-                  <table className="min-w-full text-left text-sm">
+                <div className="mt-3 max-h-[45dvh] max-w-full overflow-auto rounded-xl border border-slate-200 sm:max-h-[320px]">
+                  <table className="min-w-max text-left text-sm">
                     <thead className="sticky top-0 bg-slate-100">
                       <tr>
                         {preview.columns.map((column) => (
@@ -507,7 +507,7 @@ export function FileImportDialog({
           )}
         </div>
 
-        <footer className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+        <footer className="sticky bottom-0 z-20 grid shrink-0 grid-cols-2 gap-2 border-t border-slate-200 bg-white px-3 py-3 sm:flex sm:justify-end sm:gap-3 sm:px-6 sm:py-4">
           <button
             type="button"
             onClick={onClose}

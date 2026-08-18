@@ -28,7 +28,7 @@ export function MysteryEvidenceDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/85 p-3 backdrop-blur-sm"
+      className="fixed inset-0 z-[150] flex items-stretch justify-center bg-slate-950/85 p-0 backdrop-blur-sm sm:items-center sm:p-3"
       role="presentation"
       onMouseDown={onClose}
     >
@@ -36,12 +36,12 @@ export function MysteryEvidenceDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="mystery-evidence-title"
-        className="max-h-[94dvh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-amber-300/25 bg-[radial-gradient(circle_at_top,#31230d_0%,#101827_35%,#050914_100%)] text-white shadow-[0_30px_120px_rgba(0,0,0,0.75)]"
+        className="flex h-[100dvh] w-full max-w-3xl flex-col overflow-hidden border border-amber-300/25 bg-[radial-gradient(circle_at_top,#31230d_0%,#101827_35%,#050914_100%)] text-white shadow-[0_30px_120px_rgba(0,0,0,0.75)] sm:h-auto sm:max-h-[94dvh] sm:rounded-3xl"
         onMouseDown={(event) =>
           event.stopPropagation()
         }
       >
-        <header className="border-b border-white/10 px-5 py-5 sm:px-7">
+        <header className="shrink-0 border-b border-white/10 px-4 py-4 sm:px-7 sm:py-5">
           <p className="text-[11px] font-black uppercase tracking-[0.3em] text-amber-300">
             Evidence Update · Level{" "}
             {resolution.levelNumber}
@@ -49,7 +49,7 @@ export function MysteryEvidenceDialog({
 
           <h2
             id="mystery-evidence-title"
-            className="mt-2 text-3xl font-black tracking-tight sm:text-4xl"
+            className="mt-2 text-2xl font-black tracking-tight sm:text-4xl"
           >
             {resolution.title}
           </h2>
@@ -59,7 +59,7 @@ export function MysteryEvidenceDialog({
           </p>
         </header>
 
-        <div className="grid gap-3 p-5 sm:p-7 lg:grid-cols-3">
+        <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto p-3 sm:p-7 lg:grid-cols-3">
           <section className="rounded-2xl border border-emerald-400/25 bg-emerald-400/[0.07] p-4">
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-300">
               Cleared
@@ -134,7 +134,7 @@ export function MysteryEvidenceDialog({
           </section>
         </div>
 
-        <footer className="flex flex-wrap justify-end gap-2 border-t border-white/10 px-5 py-4 sm:px-7">
+        <footer className="grid shrink-0 grid-cols-1 gap-2 border-t border-white/10 px-3 py-3 sm:flex sm:flex-wrap sm:justify-end sm:px-7 sm:py-4">
           <button
             type="button"
             onClick={onClose}

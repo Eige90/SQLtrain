@@ -145,7 +145,8 @@ export function DeleteTableButton({
       type="button"
       onClick={() => void deleteTable()}
       disabled={isDeleting}
-      className="flex items-center gap-2 rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+      aria-label={`Delete table ${tableName}`}
+      className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:w-auto sm:py-1.5"
     >
       <Trash2 size={15} aria-hidden="true" />
 

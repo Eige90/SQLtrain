@@ -14,15 +14,15 @@ export function MysteryCaseClosedDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[170] flex items-center justify-center bg-[#02040b]/95 p-3 backdrop-blur-md">
+    <div className="fixed inset-0 z-[170] flex items-stretch justify-center bg-[#02040b]/95 p-0 backdrop-blur-md sm:items-center sm:p-3">
       <section
         role="dialog"
         aria-modal="true"
         aria-label="Case Closed"
-        className="max-h-[95dvh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-amber-300/30 bg-[radial-gradient(circle_at_top,#451a03_0%,#111827_35%,#020617_100%)] p-6 text-white shadow-[0_30px_140px_rgba(0,0,0,0.85)] sm:p-9"
+        className="h-[100dvh] w-full max-w-4xl overflow-y-auto border border-amber-300/30 bg-[radial-gradient(circle_at_top,#451a03_0%,#111827_35%,#020617_100%)] p-4 text-white shadow-[0_30px_140px_rgba(0,0,0,0.85)] sm:h-auto sm:max-h-[95dvh] sm:rounded-3xl sm:p-9"
       >
         <div className="text-center">
-          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-amber-300/30 bg-amber-400/10 text-5xl shadow-[0_0_80px_rgba(245,158,11,0.25)]">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full sm:h-24 sm:w-24 border border-amber-300/30 bg-amber-400/10 text-5xl shadow-[0_0_80px_rgba(245,158,11,0.25)]">
             🕵️
           </div>
 
@@ -30,7 +30,7 @@ export function MysteryCaseClosedDialog({
             SQLTrain · Case #714
           </p>
 
-          <h2 className="mt-2 text-4xl font-black tracking-tight sm:text-6xl">
+          <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-6xl">
             CASE CLOSED
           </h2>
 

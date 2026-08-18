@@ -17,7 +17,7 @@ export function MysteryTeaserDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/80 p-4"
+      className="fixed inset-0 z-[110] flex items-stretch justify-center bg-slate-950/80 p-0 sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={onClose}
     >
@@ -25,7 +25,7 @@ export function MysteryTeaserDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="mystery-teaser-title"
-        className="sqltrain-mystery-teaser relative w-full max-w-xl overflow-hidden rounded-3xl border border-red-400/40 bg-[radial-gradient(circle_at_top,#450a0a_0%,#172033_42%,#07111f_100%)] p-7 text-center text-white shadow-[0_30px_100px_rgba(0,0,0,0.6)] sm:p-10"
+        className="sqltrain-mystery-teaser relative h-[100dvh] w-full max-w-xl overflow-y-auto border border-red-400/40 bg-[radial-gradient(circle_at_top,#450a0a_0%,#172033_42%,#07111f_100%)] p-5 text-center text-white shadow-[0_30px_100px_rgba(0,0,0,0.6)] sm:h-auto sm:max-h-[94dvh] sm:rounded-3xl sm:p-10"
         onMouseDown={(event) =>
           event.stopPropagation()
         }
@@ -49,7 +49,7 @@ export function MysteryTeaserDialog({
 
         <h2
           id="mystery-teaser-title"
-          className="mt-2 text-3xl font-black sm:text-4xl"
+          className="mt-2 text-2xl font-black sm:text-4xl"
         >
           TRY our new Quiz
         </h2>
@@ -65,7 +65,7 @@ export function MysteryTeaserDialog({
           and hidden evidence to uncover the killer.
         </p>
 
-        <div className="mt-6 grid grid-cols-3 gap-2">
+        <div className="mt-6 grid gap-2 sm:grid-cols-3">
           <div className="rounded-xl border border-white/10 bg-white/5 p-3">
             <p className="text-2xl font-black text-white">
               20

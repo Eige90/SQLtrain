@@ -53,7 +53,7 @@ export function DatabaseManagerDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4"
+      className="fixed inset-0 z-50 flex items-stretch justify-center bg-slate-950/55 p-0 sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={onClose}
     >
@@ -61,10 +61,10 @@ export function DatabaseManagerDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="database-manager-title"
-        className="max-h-[92vh] w-full max-w-7xl overflow-auto rounded-2xl bg-white shadow-2xl"
+        className="flex h-[100dvh] w-full max-w-7xl flex-col overflow-hidden bg-white shadow-2xl sm:h-auto sm:max-h-[92vh] sm:rounded-2xl"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <header className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <header className="sticky top-0 z-20 flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
           <div>
             <h2
               id="database-manager-title"
@@ -88,10 +88,10 @@ export function DatabaseManagerDialog({
           </button>
         </header>
 
-        <div className="grid gap-6 p-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-6">
+        <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-3 sm:gap-6 sm:p-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="min-w-0 space-y-4 sm:space-y-6">
             <section>
-              <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="mb-3 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="font-semibold text-slate-900">
                     Tables
@@ -102,16 +102,35 @@ export function DatabaseManagerDialog({
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    onUseSql(CREATE_TABLE_TEMPLATE)
-                  }
-                  className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
-                >
-                  <Plus size={16} aria-hidden="true" />
-                  Create Table
-                </button>
+                <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setIsImportDialogOpen(true)
+                    }
+                    className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 sm:w-auto"
+                  >
+                    <FileSpreadsheet
+                      size={16}
+                      aria-hidden="true"
+                    />
+                    Import Excel or CSV
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUseSql(CREATE_TABLE_TEMPLATE)
+                    }
+                    className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 sm:w-auto"
+                  >
+                    <Plus
+                      size={16}
+                      aria-hidden="true"
+                    />
+                    Create Table
+                  </button>
+                </div>
               </div>
 
               <div className="overflow-hidden rounded-xl border border-slate-200">
@@ -122,7 +141,9 @@ export function DatabaseManagerDialog({
                   return (
                     <div
                       key={table.name}
-                      className={`flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0 ${
+                      data-testid="database-table-summary"
+                      data-table-name={table.name}
+                      className={`flex flex-col items-stretch gap-3 border-b border-slate-100 px-3 py-3 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:px-4 ${
                         isSelected
                           ? "bg-emerald-50"
                           : "bg-white"
@@ -138,13 +159,13 @@ export function DatabaseManagerDialog({
                         </p>
                       </div>
 
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                         <button
                           type="button"
                           onClick={() =>
                             setSelectedTableName(table.name)
                           }
-                          className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+                          className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition sm:min-h-0 sm:w-auto sm:py-1.5 ${
                             isSelected
                               ? "border-emerald-300 bg-emerald-100 text-emerald-800"
                               : "border-slate-300 text-slate-700 hover:bg-slate-50"
@@ -164,7 +185,7 @@ export function DatabaseManagerDialog({
                               )}";`,
                             )
                           }
-                          className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:min-h-0 sm:w-auto sm:py-1.5"
                         >
                           <PencilLine
                             size={15}
@@ -192,7 +213,7 @@ export function DatabaseManagerDialog({
             />
           </div>
 
-          <aside className="space-y-4">
+          <aside className="grid min-w-0 gap-4 sm:grid-cols-2 xl:block xl:space-y-4">
             <div className="rounded-xl border border-slate-200 p-4">
               <div className="flex items-center gap-2 font-semibold text-slate-900">
                 <FileSpreadsheet
@@ -208,13 +229,10 @@ export function DatabaseManagerDialog({
                 uploaded to a server.
               </p>
 
-              <button
-                type="button"
-                onClick={() => setIsImportDialogOpen(true)}
-                className="mt-4 w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
-              >
-                Import Excel or CSV
-              </button>
+              <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium leading-5 text-emerald-800">
+                Use the Import Excel or CSV action above to add
+                your own local data.
+              </p>
             </div>
 
             <RelationshipsPanel

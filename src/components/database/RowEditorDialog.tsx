@@ -217,7 +217,7 @@ export function RowEditorDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-4"
+      className="fixed inset-0 z-[70] flex items-stretch justify-center bg-slate-950/60 p-0 sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={onClose}
     >
@@ -225,10 +225,10 @@ export function RowEditorDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="row-editor-title"
-        className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-2xl bg-white shadow-2xl"
+        className="h-[100dvh] w-full max-w-2xl overflow-y-auto bg-white shadow-2xl sm:h-auto sm:max-h-[90vh] sm:rounded-2xl"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <header className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-6 sm:py-4">
           <div>
             <h3
               id="row-editor-title"
@@ -253,7 +253,7 @@ export function RowEditorDialog({
           </button>
         </header>
 
-        <div className="space-y-4 p-6">
+        <div className="space-y-3 p-3 pb-24 sm:space-y-4 sm:p-6">
           {displayedError && (
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {displayedError}
@@ -277,9 +277,9 @@ export function RowEditorDialog({
             return (
               <div
                 key={column.name}
-                className="rounded-xl border border-slate-200 p-4"
+                className="rounded-xl border border-slate-200 p-3 sm:p-4"
               >
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
                   <div>
                     <label
                       htmlFor={`row-field-${column.name}`}
@@ -369,7 +369,7 @@ export function RowEditorDialog({
           })}
         </div>
 
-        <footer className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
+        <footer className="sticky bottom-0 z-20 grid grid-cols-2 gap-2 border-t border-slate-200 bg-white px-3 py-3 sm:flex sm:justify-end sm:gap-3 sm:px-6 sm:py-4">
           <button
             type="button"
             onClick={onClose}

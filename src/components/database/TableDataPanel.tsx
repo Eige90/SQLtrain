@@ -237,8 +237,11 @@ export function TableDataPanel({
 
   return (
     <>
-      <section className="overflow-hidden rounded-xl border border-slate-200">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+      <section
+        data-testid="database-table-panel"
+        className="min-w-0 overflow-hidden rounded-xl border border-slate-200"
+      >
+        <header className="flex flex-col items-stretch gap-3 border-b border-slate-200 bg-slate-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
           <div>
             <h4 className="font-semibold text-slate-900">
               {tableName}
@@ -253,7 +256,7 @@ export function TableDataPanel({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
             <button
               type="button"
               onClick={openInsertEditor}
@@ -262,7 +265,7 @@ export function TableDataPanel({
                 isSaving ||
                 !tableData
               }
-              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+              className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300 sm:min-h-0 sm:py-1.5"
             >
               <Plus size={15} aria-hidden="true" />
               Add Row
@@ -276,7 +279,7 @@ export function TableDataPanel({
                 )
               }
               disabled={isLoading || isSaving}
-              className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:text-slate-400"
+              className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:text-slate-400 sm:min-h-0 sm:py-1.5"
             >
               <RefreshCw
                 size={15}
@@ -300,7 +303,7 @@ export function TableDataPanel({
                 !canGoBack || isLoading || isSaving
               }
               aria-label="Previous page"
-              className="rounded-lg border border-slate-300 p-1.5 text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:text-slate-300"
+              className="flex min-h-11 items-center justify-center rounded-lg border border-slate-300 p-2 text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:text-slate-300 sm:min-h-0 sm:p-1.5"
             >
               <ChevronLeft size={18} aria-hidden="true" />
             </button>
@@ -317,7 +320,7 @@ export function TableDataPanel({
                 !canGoForward || isLoading || isSaving
               }
               aria-label="Next page"
-              className="rounded-lg border border-slate-300 p-1.5 text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:text-slate-300"
+              className="flex min-h-11 items-center justify-center rounded-lg border border-slate-300 p-2 text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:text-slate-300 sm:min-h-0 sm:p-1.5"
             >
               <ChevronRight size={18} aria-hidden="true" />
             </button>
@@ -330,9 +333,9 @@ export function TableDataPanel({
           </div>
         )}
 
-        <div className="max-h-[440px] overflow-auto">
+        <div data-testid="database-table-scroll" className="max-h-[55dvh] max-w-full overflow-auto overscroll-contain sm:max-h-[440px]">
           {tableData && tableData.rows.length > 0 ? (
-            <table className="min-w-full border-collapse text-left text-sm">
+            <table className="min-w-max border-collapse text-left text-sm">
               <thead className="sticky top-0 z-10 bg-slate-100">
                 <tr>
                   {tableData.columns.map((column) => (
