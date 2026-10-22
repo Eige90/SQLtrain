@@ -1,13 +1,14 @@
 # SQLTrain
 
+## English
+
 SQLTrain is an interactive, browser-based environment for learning, practicing, and testing SQL with a real SQLite database.
 
 It combines a SQL workbench, database management tools, 100 guided SQL lessons, and a 20-level SQL Murder Mystery campaign with 100 investigation tasks.
 
-## Live versions
+## Live version
 
 - GitHub Pages: https://eige90.github.io/SQLtrain/
-- Cloudflare: https://sqltrain.sqltrain-app.workers.dev/
 
 ## Features
 
@@ -121,21 +122,6 @@ The exported site is generated in:
 out/
 ```
 
-To preview the Next.js development version locally, use `npm run dev`.
-
-## Deploy to Cloudflare
-
-The repository contains a `wrangler.jsonc` configuration for static assets.
-
-Build and deploy with:
-
-```bash
-npm run build
-npx wrangler deploy
-```
-
-Cloudflare authentication must already be configured for the account performing the deployment.
-
 ## Tests and quality checks
 
 Run ESLint:
@@ -168,7 +154,7 @@ Run the full project test command:
 npm run test:all
 ```
 
-The E2E suite includes responsive database workflows, real CSV/XLS/XLSX imports, CRUD operations, relationship creation, long table/column names, lesson layouts, and complete Murder Mystery workflows up to Task 100 and Case Closed.
+The E2E suite includes responsive database workflows, real CSV/XLS/XLSX imports, CRUD operations, relationship creation, long table and column names, lesson layouts, and complete Murder Mystery workflows up to Task 100 and Case Closed.
 
 ## Tech Stack
 
@@ -180,7 +166,7 @@ The E2E suite includes responsive database workflows, real CSV/XLS/XLSX imports,
 - Monaco Editor
 - SheetJS
 - Playwright
-- Wrangler / Cloudflare Workers static assets
+- Wrangler
 - GitHub Pages
 
 ## Architecture
@@ -204,3 +190,196 @@ SQLTrain currently includes:
 ## Author
 
 Built by [Eige90](https://github.com/Eige90).
+
+---
+
+# SQLTrain – Deutsch
+
+SQLTrain ist eine interaktive, browserbasierte Umgebung zum Lernen, Üben und Testen von SQL mit einer echten SQLite-Datenbank.
+
+Das Projekt kombiniert eine SQL-Arbeitsumgebung, Datenbankverwaltung, 100 geführte SQL-Lektionen und eine SQL-Murder-Mystery-Kampagne mit 20 Levels und insgesamt 100 Ermittlungsaufgaben.
+
+## Live-Version
+
+- GitHub Pages: https://eige90.github.io/SQLtrain/
+
+## Funktionen
+
+### SQL Workbench
+
+- SQL-Editor auf Basis von Monaco
+- Ausführen von `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `ALTER` und `DROP`
+- Anzeige von Abfrageergebnissen
+- Northwind-ähnliche Trainingsdatenbank
+- Wiederherstellung der ursprünglichen Datenbank jederzeit möglich
+
+### Datenbank-Manager
+
+- Tabellen und Datensätze anzeigen
+- Datensätze hinzufügen, bearbeiten und löschen
+- Tabellen erstellen und löschen
+- große Tabellen mit Seitennavigation durchsuchen
+- Tabellenbeziehungen und Fremdschlüssel verwalten
+- responsive Dialoge und Bedienelemente für Smartphone, Tablet, Laptop und Desktop
+
+### Excel- und CSV-Import
+
+SQLTrain kann lokale Dateien direkt im Browser importieren:
+
+- XLSX
+- ältere XLS-Dateien
+- CSV
+- UTF-8-CSV
+- UTF-8-CSV mit BOM
+- mit Semikolon getrennte CSV-Exporte
+- Windows-1252-CSV-Dateien
+- CSV-Werte mit Anführungszeichen, Kommas, Unicode-Zeichen und leeren Feldern
+- Arbeitsmappen mit mehreren Tabellenblättern
+- Importmodi Erstellen, Anhängen und Ersetzen
+
+Importierte Dateien bleiben auf dem Gerät und werden nicht auf einen Server hochgeladen.
+
+### 100 SQL-Lektionen
+
+- 100 geführte SQL-Lektionen
+- automatische Validierung der Abfragen
+- lokaler Lernfortschritt im Browser
+- XP, Serien und Badges
+- SQL-Pro-Abschlussstatus
+- Freischaltung des Murder Mystery nach Lektion 10
+
+### SQL Murder Mystery
+
+**The Night Train to Bern**
+
+- 20 zusammenhängende Mystery-Levels
+- 5 SQL-Aufgaben pro Level
+- insgesamt 100 Ermittlungsaufgaben
+- isolierte Mystery-Datenbank
+- Hinweise und Lösungen
+- Beweissammlung
+- Verdächtigenübersicht und Ermittlungsverlauf
+- dauerhafter Fortschritt im Browser-Speicher
+- finales Case Closed / Master Detective
+
+Die normale SQLTrain-Datenbank bleibt von der Mystery-Datenbank getrennt.
+
+## Datenschutz
+
+SQLTrain ist so konzipiert, dass es lokal im Browser ausgeführt wird.
+
+- SQL wird über SQLite WebAssembly direkt im Browser ausgeführt
+- importierte Excel- und CSV-Dateien bleiben auf dem Gerät
+- für die Trainingsdatenbank ist kein Anwendungs-Backend erforderlich
+- persistente SQLite-Speicherung nutzt den Browser-Speicher, sofern unterstützt
+- wenn persistente Speicherung nicht verfügbar ist, wird auf eine temporäre In-Memory-Datenbank zurückgegriffen
+
+## SQLTrain lokal starten
+
+### 1. Repository klonen
+
+```bash
+git clone https://github.com/Eige90/SQLtrain.git
+cd SQLtrain
+```
+
+### 2. Abhängigkeiten installieren
+
+```bash
+npm install
+```
+
+### 3. Entwicklungsserver starten
+
+```bash
+npm run dev
+```
+
+Danach im Browser öffnen:
+
+```text
+http://localhost:3000
+```
+
+## Produktions-Build
+
+Den statischen Produktions-Build erstellen mit:
+
+```bash
+npm run build
+```
+
+Die exportierte Website wird erzeugt unter:
+
+```text
+out/
+```
+
+## Tests und Qualitätsprüfungen
+
+ESLint ausführen:
+
+```bash
+npm run lint
+```
+
+Produktions-Build prüfen:
+
+```bash
+npm run build
+```
+
+Responsive Playwright-Tests ausführen:
+
+```bash
+npm run test:responsive
+```
+
+Funktionale Chromium-Tests ausführen:
+
+```bash
+npm run test:functional
+```
+
+Den vollständigen Projekt-Testbefehl ausführen:
+
+```bash
+npm run test:all
+```
+
+Die E2E-Tests umfassen responsive Datenbank-Workflows, echte CSV/XLS/XLSX-Importe, CRUD-Funktionen, das Erstellen von Beziehungen, lange Tabellen- und Spaltennamen, Lektionen sowie vollständige Murder-Mystery-Workflows bis Aufgabe 100 und Case Closed.
+
+## Tech-Stack
+
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- SQLite WebAssembly
+- Monaco Editor
+- SheetJS
+- Playwright
+- Wrangler
+- GitHub Pages
+
+## Architektur
+
+SQLTrain verwendet einen statischen Next.js-Export und benötigt keinen klassischen Anwendungsserver.
+
+Die Trainingsdatenbank läuft über SQLite WebAssembly direkt im Browser. Persistenter Speicher wird genutzt, wenn der Browser die erforderlichen APIs unterstützt. Andernfalls wird eine In-Memory-Variante verwendet.
+
+## Projektstatus
+
+SQLTrain enthält aktuell:
+
+- 100 normale SQL-Lektionen
+- 20 Murder-Mystery-Levels
+- 100 Murder-Mystery-SQL-Aufgaben
+- responsive Datenbankverwaltung
+- lokalen Excel-/CSV-Import
+- persistenten Lern- und Mystery-Fortschritt
+- automatisierte funktionale und responsive E2E-Abdeckung
+
+## Autor
+
+Erstellt von [Eige90](https://github.com/Eige90).
