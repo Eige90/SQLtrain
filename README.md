@@ -421,3 +421,11 @@ Erstellt von [Eige90](https://github.com/Eige90).
 - [ ] Abgleich der GitHub-Pages-Version mit dem Quellcode.
 - [ ] Nach Abnahmetests Release-Version festlegen; package.json nennt derzeit v0.1.0.
 
+
+## GitHub Pages / Website status
+
+**Project URL (availability not independently confirmed):** https://eige90.github.io/SQLtrain/
+
+**English:** Static Next.js export documented; live URL in README. HTTP reachability could not be confirmed in this review.
+
+**Deutsch:** Statischer Next.js-Export dokumentiert; Live-Link bereits in der README. HTTP-Erreichbarkeit konnte bei dieser Prüfung nicht bestätigt werden.
