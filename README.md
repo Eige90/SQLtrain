@@ -1,5 +1,7 @@
 # SQLTrain
 
+**Source version / Version im Code:** `v0.1.0`
+
 ## English
 
 SQLTrain is an interactive, browser-based environment for learning, practicing, and testing SQL with a real SQLite database.
