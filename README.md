@@ -206,6 +206,13 @@ Built by [Eige90](https://github.com/Eige90).
 
 ---
 
+
+## Roadmap / Open verification items
+
+- [ ] Run and record lint, production build and browser end-to-end tests for the current commit.
+- [ ] Confirm the published GitHub Pages build matches source.
+- [ ] Choose a release version after acceptance tests; package.json currently reports v0.1.0.
+
 # SQLTrain – Deutsch
 
 SQLTrain ist eine interaktive, browserbasierte Umgebung zum Lernen, Üben und Testen von SQL mit einer echten SQLite-Datenbank.
@@ -407,3 +414,10 @@ SQLTrain enthält aktuell:
 ## Autor
 
 Erstellt von [Eige90](https://github.com/Eige90).
+
+## Roadmap / Offene Prüfpunkte
+
+- [ ] Lint, Produktions-Build und Browser-End-to-End-Tests für den aktuellen Commit ausführen und dokumentieren.
+- [ ] Abgleich der GitHub-Pages-Version mit dem Quellcode.
+- [ ] Nach Abnahmetests Release-Version festlegen; package.json nennt derzeit v0.1.0.
+
