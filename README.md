@@ -19,9 +19,9 @@ npm run dev
 
 Open http://localhost:3000.
 
-## Live version
+## GitHub Pages (external availability not verified)
 
-- GitHub Pages: https://eige90.github.io/SQLtrain/
+- Project URL: https://eige90.github.io/SQLtrain/
 
 ## Features
 
@@ -230,9 +230,9 @@ npm run dev
 
 Anschließend http://localhost:3000 öffnen.
 
-## Live-Version
+## GitHub Pages (Erreichbarkeit extern nicht bestätigt)
 
-- GitHub Pages: https://eige90.github.io/SQLtrain/
+- Projektadresse: https://eige90.github.io/SQLtrain/
 
 ## Funktionen
 
