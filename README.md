@@ -6,6 +6,17 @@ SQLTrain is an interactive, browser-based environment for learning, practicing, 
 
 It combines a SQL workbench, database management tools, 100 guided SQL lessons, and a 20-level SQL Murder Mystery campaign with 100 investigation tasks.
 
+## Quick start
+
+```bash
+git clone https://github.com/Eige90/SQLtrain.git
+cd SQLtrain
+npm install
+npm run dev
+```
+
+Open http://localhost:3000.
+
 ## Live version
 
 - GitHub Pages: https://eige90.github.io/SQLtrain/
@@ -198,6 +209,17 @@ Built by [Eige90](https://github.com/Eige90).
 SQLTrain ist eine interaktive, browserbasierte Umgebung zum Lernen, Üben und Testen von SQL mit einer echten SQLite-Datenbank.
 
 Das Projekt kombiniert eine SQL-Arbeitsumgebung, Datenbankverwaltung, 100 geführte SQL-Lektionen und eine SQL-Murder-Mystery-Kampagne mit 20 Levels und insgesamt 100 Ermittlungsaufgaben.
+
+## Schnellstart
+
+```bash
+git clone https://github.com/Eige90/SQLtrain.git
+cd SQLtrain
+npm install
+npm run dev
+```
+
+Anschließend http://localhost:3000 öffnen.
 
 ## Live-Version
 
